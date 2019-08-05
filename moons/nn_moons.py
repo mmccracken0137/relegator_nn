@@ -21,15 +21,21 @@ from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 from moons_tools import *
 
 # to use latex with matplotlib
-from matplotlib import rc
-rc('font', **{'family':'serif','serif':['Palatino']})
-rc('text', usetex=True)
+# from matplotlib import rc
+# rc('font', **{'family':'serif','serif':['Palatino']})
+# rc('text', usetex=True)
 
 n_evts = int(sys.argv[1])
 noise = float(sys.argv[2])
 angle = 0.0
+n_epochs = 100
+sig_weight = 1.0
 if len(sys.argv) >= 4:
     angle = float(sys.argv[3])
+if len(sys.argv) >= 5:
+    n_epochs = int(sys.argv[4])
+if len(sys.argv) >= 6:
+    sig_weight = float(sys.argv[5])
 
 # parameters for 'mass' distribution
 min, max = 0.0, 1.0
@@ -67,9 +73,9 @@ def nn_reg_model(n_inputs, n_hidden, hidden_nodes, input_dropout=0.0, biases=Tru
     return model
 
 dropout_frac = 0.2
-reg_clf = nn_reg_model(len(X_train.columns), 2, [10, 10], input_dropout=dropout_frac)
+reg_clf = nn_reg_model(len(X_train.columns), 2, [10, 10, 5], input_dropout=dropout_frac)
+print(reg_clf.summary())
 
-n_epochs = 100
 epochs, eval_loss, eval_accs, train_loss, train_accs = [], [], [], [], []
 test_loss, test_accs = [], []
 
@@ -79,7 +85,7 @@ for i in range(n_epochs):
     history = reg_clf.fit(X_train, y_train, epochs=1, batch_size=100, verbose=1)
 
     epochs.append(i)
-    eval_accs.append(history.history['accuracy'][-1])
+    eval_accs.append(history.history['acc'][-1])
     eval_loss.append(history.history['loss'][-1])
     loss, acc = reg_clf.evaluate(X_train, y_train, verbose=2)
     train_accs.append(acc)
@@ -159,7 +165,7 @@ n_sig, n_bkgd, pwr = [], [], []
 for d in dvals:
     n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d]))
     n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d]))
-    pwr.append(n_sig[-1] / np.sqrt(n_sig[-1] + n_bkgd[-1]))
+    pwr.append(n_sig[-1]*sig_weight / np.sqrt(n_sig[-1]*sig_weight + n_bkgd[-1]))
 ax.plot(dvals, pwr)
 plt.xlabel('decision function value')
 plt.ylabel(r'$S / \sqrt{S+B}$')
