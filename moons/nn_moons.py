@@ -73,14 +73,14 @@ def nn_reg_model(n_inputs, n_hidden, hidden_nodes, input_dropout=0.0, biases=Tru
     return model
 
 dropout_frac = 0.2
-reg_clf = nn_reg_model(len(X_train.columns), 2, [10, 10, 5], input_dropout=dropout_frac)
+reg_clf = nn_reg_model(len(X_train.columns), 2, [20, 20, 10], input_dropout=dropout_frac)
 print(reg_clf.summary())
 
 epochs, eval_loss, eval_accs, train_loss, train_accs = [], [], [], [], []
 test_loss, test_accs = [], []
 
 for i in range(n_epochs):
-    print("\nEPOCH " + str(i) + "/" + str(n_epochs))
+    print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
     #if i > 0:
     history = reg_clf.fit(X_train, y_train, epochs=1, batch_size=100, verbose=1)
 
@@ -90,11 +90,11 @@ for i in range(n_epochs):
     loss, acc = reg_clf.evaluate(X_train, y_train, verbose=2)
     train_accs.append(acc)
     train_loss.append(loss)
-    print("training --> loss = %0.4f, \t acc = %0.4f"%(loss, acc))
+    print('training --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
     loss, acc = reg_clf.evaluate(X_test, y_test, verbose=2)
     test_accs.append(acc)
     test_loss.append(loss)
-    print("testing --> loss = %0.4f, \t acc = %0.4f"%(loss, acc))
+    print('testing --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
 
     # sig_ot_comp.append(dec_score_comp(keras_model, X_train_scale[y_train>0.5], X_test_scale[y_test>0.5]))
     # bkgd_ot_comp.append(dec_score_comp(keras_model, X_train_scale[y_train<0.5], X_test_scale[y_test<0.5]))
@@ -102,7 +102,7 @@ for i in range(n_epochs):
 y_pred_keras = reg_clf.predict(X_test).ravel()
 fpr_reg_clf, tpr_reg_clf, thresholds_reg_clf = metrics.roc_curve(y_test, y_pred_keras)
 auc_keras = metrics.auc(fpr_reg_clf, tpr_reg_clf)
-print("\nauc score on test: %0.4f" % auc_keras, '\n')
+print('\nauc score on test: %0.4f' % auc_keras, '\n')
 
 print('\n... NN trained, plotting...\n')
 
@@ -122,7 +122,7 @@ plt.plot(epochs, train_accs, label='train')
 plt.plot(epochs, test_accs, label='test')
 #plt.plot(history.history['val_acc'])
 plt.title('model accuracy')
-plt.legend(loc="lower right")
+plt.legend(loc='lower right')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 
@@ -132,7 +132,7 @@ plt.plot(epochs, train_loss, label='train')
 plt.plot(epochs, test_loss, label='test')
 #plt.plot(history.history['val_acc'])
 plt.title('loss (bin. cross-entropy)')
-plt.legend(loc="upper right")
+plt.legend(loc='upper right')
 plt.ylabel('loss')
 plt.xlabel('epoch')
 
@@ -145,7 +145,7 @@ plt.ylim([-0.05, 1.05])
 plt.xlabel('false positive rate')
 plt.ylabel('true positive rate')
 plt.title('receiver operating characteristic')
-plt.legend(loc="lower right")
+plt.legend(loc='lower right')
 plt.grid()
 
 ax = plt.subplot(n_rows,n_cols, n_rows * n_cols - 2)
@@ -166,12 +166,18 @@ for d in dvals:
     n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d]))
     n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d]))
     pwr.append(n_sig[-1]*sig_weight / np.sqrt(n_sig[-1]*sig_weight + n_bkgd[-1]))
-ax.plot(dvals, pwr)
+opt_pwr = np.max(pwr)
+opt_idx = pwr.index(opt_pwr)
+opt_df  = dvals[opt_idx]
+ax.plot(dvals, pwr, label='sig weight = ' + str(sig_weight))
 plt.xlabel('decision function value')
 plt.ylabel(r'$S / \sqrt{S+B}$')
+plt.axvline(x=opt_df, color='lightgray', dashes=(1,1))
+plt.legend(loc='lower right')
 
 plt.tight_layout()
 
+# # # # #
 fig = plt.figure(figsize=(11,7))
 ax = plt.subplot(1,1,1)
 # plot decision boundaries
@@ -188,4 +194,5 @@ ax.contourf(x1_mesh, x2_mesh, bounds, alpha=0.4)
 plot_xs(raw_df, ax)
 plt.title('noise = ' + str(noise) + ', angle = ' + str(angle) + ', epochs = ' + str(n_epochs))
 
+plt.tight_layout()
 plt.show()

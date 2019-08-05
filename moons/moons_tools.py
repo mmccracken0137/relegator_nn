@@ -49,7 +49,7 @@ def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0
 
 def plot_xs(df, ax):
     npts = len(df['x1'])
-    msize = 10 / np.log10(npts)
+    msize = 13 / np.log10(npts)
     ax.plot(df['x1'][df.label==0], df['x2'][df.label==0], '.', markersize=msize, label='type 0')
     ax.plot(df['x1'][df.label==1], df['x2'][df.label==1], '.', markersize=msize, label='type 1')
     plt.ylabel(r'$x_{2}$')
