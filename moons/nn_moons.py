@@ -29,13 +29,13 @@ n_evts = 2*int(sys.argv[1])
 noise = float(sys.argv[2])
 angle = 0.0
 n_epochs = 100
-sig_weight = 1.0
+sig_frac = 0.5
 if len(sys.argv) >= 4:
     angle = float(sys.argv[3])
 if len(sys.argv) >= 5:
     n_epochs = int(sys.argv[4])
 if len(sys.argv) >= 6:
-    sig_weight = float(sys.argv[5])
+    sig_frac = float(sys.argv[5])
 
 # parameters for 'mass' distribution
 min, max = 0.0, 1.0
@@ -165,11 +165,11 @@ n_sig, n_bkgd, pwr = [], [], []
 for d in dvals:
     n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d]))
     n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d]))
-    pwr.append(n_sig[-1]*sig_weight / np.sqrt(n_sig[-1]*sig_weight + n_bkgd[-1]))
+    pwr.append(n_sig[-1]*sig_frac / np.sqrt(n_sig[-1]*sig_frac + n_bkgd[-1]*(1-sig_frac)))
 opt_pwr = np.max(pwr)
 opt_idx = pwr.index(opt_pwr)
 opt_df  = dvals[opt_idx]
-ax.plot(dvals, pwr, label='sig weight = ' + str(sig_weight))
+ax.plot(dvals, pwr, label='sig fraction = ' + str(sig_frac))
 plt.xlabel('decision function value')
 plt.ylabel(r'$S / \sqrt{S+B}$')
 plt.axvline(x=opt_df, color='lightgray', dashes=(1,1))
@@ -198,10 +198,10 @@ plt.tight_layout()
 
 # # # # # plot weighted-data histograms after optimal cut
 
-weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60, sig_ratio=sig_weight)
+weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
 y_weighted = weighted_df['label']
 print('\noptimal decision function cut is at ' + str(opt_df))
-print('applying optimal cut to dataset with sig_ratio = ' + str(sig_weight) + '...')
+print('applying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
 X_weighted, _, y_weighted, _ = train_test_split(weighted_df, y_weighted, test_size=0.0, random_state=42)
 xs_weighted = weighted_df.drop(['label', 'm'], axis=1)
 y_pred_weighted = reg_clf.predict(xs_weighted).ravel()
@@ -211,7 +211,7 @@ fig = plt.figure(figsize=(11,7))
 ax = plt.subplot(1,1,1)
 hist_ms(weighted_df, min, max, nbins, ax)
 hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
-plt.title('masses, sig_ratio = ' + str(sig_weight))
+plt.title('masses, sig_frac = ' + str(sig_frac))
 plt.legend(loc='upper right')
 
 plt.tight_layout()

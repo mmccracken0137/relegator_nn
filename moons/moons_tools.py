@@ -9,16 +9,16 @@ import sklearn.datasets
 import matplotlib.pyplot as plt
 import sys
 
-def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0, sig_ratio=0.5):
+def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0, sig_fraction=0.5):
     # signal is type 1...
     X, y, df = [], [], None
     df_sig, df_bkgd = None, None
-    if sig_ratio == 0.5:
+    if sig_fraction == 0.5:
         X, y = sklearn.datasets.make_moons(n_samples=nevts, shuffle=True, noise=noise)
         df = pd.DataFrame(dict(x1=X[:,0], x2=X[:,1], label=y))
     else:
         # background events
-        n_bkgd = int(nevts*(1-sig_ratio))
+        n_bkgd = int(nevts*(1-sig_fraction))
         print("number of background events:\t", n_bkgd)
         X, y = sklearn.datasets.make_moons(n_samples=2*n_bkgd, shuffle=True, noise=noise)
         df_bkgd = pd.DataFrame(dict(x1=X[:,0], x2=X[:,1], label=y))
