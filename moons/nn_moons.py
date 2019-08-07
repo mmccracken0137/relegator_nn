@@ -25,7 +25,7 @@ from moons_tools import *
 # rc('font', **{'family':'serif','serif':['Palatino']})
 # rc('text', usetex=True)
 
-n_evts = int(sys.argv[1])
+n_evts = 2*int(sys.argv[1])
 noise = float(sys.argv[2])
 angle = 0.0
 n_epochs = 100
@@ -177,7 +177,7 @@ plt.legend(loc='lower right')
 
 plt.tight_layout()
 
-# # # # #
+# # # # # plot decision boundaries
 fig = plt.figure(figsize=(11,7))
 ax = plt.subplot(1,1,1)
 # plot decision boundaries
@@ -193,6 +193,26 @@ ax.contourf(x1_mesh, x2_mesh, bounds, alpha=0.4)
 
 plot_xs(raw_df, ax)
 plt.title('noise = ' + str(noise) + ', angle = ' + str(angle) + ', epochs = ' + str(n_epochs))
+
+plt.tight_layout()
+
+# # # # # plot weighted-data histograms after optimal cut
+
+weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60, sig_ratio=sig_weight)
+y_weighted = weighted_df['label']
+print('\noptimal decision function cut is at ' + str(opt_df))
+print('applying optimal cut to dataset with sig_ratio = ' + str(sig_weight) + '...')
+X_weighted, _, y_weighted, _ = train_test_split(weighted_df, y_weighted, test_size=0.0, random_state=42)
+xs_weighted = weighted_df.drop(['label', 'm'], axis=1)
+y_pred_weighted = reg_clf.predict(xs_weighted).ravel()
+weighted_df['pred'] = y_pred_weighted
+
+fig = plt.figure(figsize=(11,7))
+ax = plt.subplot(1,1,1)
+hist_ms(weighted_df, min, max, nbins, ax)
+hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
+plt.title('masses, sig_ratio = ' + str(sig_weight))
+plt.legend(loc='upper right')
 
 plt.tight_layout()
 plt.show()
