@@ -46,7 +46,7 @@ output_fname += ':sig_frac=' + str(sig_frac)
 
 # parameters for 'mass' distribution
 min, max = 0.0, 1.0
-mean, width = 0.5, 0.12
+mean, width, n_sigmas = 0.5, 0.12, 2.5
 
 # make the data and labels
 raw_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60)
@@ -54,12 +54,13 @@ df = raw_df.copy()
 
 y = df['label']
 # generate one-hot label encoding
-y_encoded, y_cats = y.factorize()
-oh_enc = preprocessing.OneHotEncoder(categories='auto')
-y_1hot = oh_enc.fit_transform(y_encoded.reshape(-1,1)).toarray()
+# y_encoded, y_cats = y.factorize()
+# oh_enc = preprocessing.onehotencoder(categories='auto')
+# y_1hot = oh_enc.fit_transform(y_encoded.reshape(-1,1)).toarray()
+y_1hot = pd.concat([df['label_0'], df['label_1']], axis=1, sort=False)
 
 masses = df['m']
-df.drop('label', axis=1, inplace=True)
+df.drop(['label', 'label_0', 'label_1'], axis=1, inplace=True)
 X_train, X_test, y_1hot_train, y_1hot_test = train_test_split(df, y_1hot, test_size=0.25, random_state=42)
 masses_train = X_train['m']
 masses_test = X_test['m']
@@ -126,37 +127,24 @@ y_pred_train = y_1hot_pred_train.argmax(axis=1)
 y_1hot_pred = binary_clf.predict(X_test)
 y_pred = y_1hot_pred.argmax(axis=1)
 
-matrix_train = metrics.confusion_matrix(y_1hot_train.argmax(axis=1), y_1hot_pred_train.argmax(axis=1))
+matrix_train = metrics.confusion_matrix(y_1hot_train.to_numpy().argmax(axis=1),
+                                        y_1hot_pred_train.argmax(axis=1))
 matrix_train = matrix_train.astype('float') / matrix_train.sum(axis=1)[:, np.newaxis]
-matrix_test = metrics.confusion_matrix(y_1hot_test.argmax(axis=1), y_1hot_pred.argmax(axis=1))
+matrix_test = metrics.confusion_matrix(y_1hot_test.to_numpy().argmax(axis=1),
+                                       y_1hot_pred.argmax(axis=1))
 matrix_test = matrix_test.astype('float') / matrix_test.sum(axis=1)[:, np.newaxis]
 
-fig = plt.figure(figsize=(11,7))
-nbins = int(np.sqrt(n_evts))
+fig = plt.figure(figsize=(11,6))
+nbins = int(np.sqrt(n_evts)/2)
 
-n_rows, n_cols = 3, 3
-ax = plt.subplot(n_rows,n_cols,1)
-hist_xs(raw_df, 'x1', nbins, ax)
+n_rows, n_cols = 2, 3
+# ax = plt.subplot(n_rows,n_cols,1)
+# hist_xs(raw_df, 'x1', nbins, ax)
+#
+# ax = plt.subplot(n_rows,n_cols,2)
+# hist_xs(raw_df, 'x2', nbins, ax)
 
-ax = plt.subplot(n_rows,n_cols,2)
-hist_xs(raw_df, 'x2', nbins, ax)
-
-ax = plt.subplot(n_rows, n_cols,3)
-print('training results...')
-class_labels = ['type 0', 'type 1']
-plot_confusion_matrix(y_1hot_train.argmax(axis=1), y_1hot_pred_train.argmax(axis=1), class_labels, ax,
-                          normalize=True,
-                          title='confusion matrix, train')
-
-print('\ntesting results...')
-ax = plt.subplot(2,2,4)
-plot_confusion_matrix(y_1hot_test.argmax(axis=1), y_1hot_pred.argmax(axis=1), class_labels, ax,
-                          normalize=True,
-                          title='confusion matrix, test')
-
-
-
-ax = plt.subplot(n_rows,n_cols, 4)
+ax = plt.subplot(n_rows,n_cols, 1)
 plt.plot(epochs, eval_accs, label='train, dropout=' + str(dropout_frac))
 plt.plot(epochs, train_accs, label='train')
 plt.plot(epochs, test_accs, label='test')
@@ -166,7 +154,7 @@ plt.legend(loc='lower right')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 
-ax = plt.subplot(n_rows, n_cols, 5)
+ax = plt.subplot(n_rows, n_cols, 2)
 plt.plot(epochs, eval_loss, label='train, dropout=' + str(dropout_frac))
 plt.plot(epochs, train_loss, label='train')
 plt.plot(epochs, test_loss, label='test')
@@ -182,6 +170,21 @@ plt.title('noise = ' + str(noise) + ', angle = ' + str(angle))
 
 ax = plt.subplot(n_rows,n_cols, n_rows * n_cols - 1)
 hist_ms(raw_df, min, max, nbins, ax)
+plt.tight_layout()
+
+fig = plt.figure(figsize=(11,5))
+ax = plt.subplot(1,2,1)
+print('training results...')
+class_labels = ['type 0', 'type 1']
+plot_confusion_matrix(y_1hot_train.to_numpy().argmax(axis=1),
+                      y_1hot_pred_train.argmax(axis=1), class_labels, ax,
+                      normalize=True, title='confusion matrix, train')
+
+print('\ntesting results...')
+ax = plt.subplot(1,2,2)
+plot_confusion_matrix(y_1hot_test.to_numpy().argmax(axis=1),
+                      y_1hot_pred.argmax(axis=1), class_labels, ax,
+                      normalize=True, title='confusion matrix, test')
 
 # ax = plt.subplot(n_rows,n_cols, n_rows * n_cols)
 # test_dict = {'x1':X_test['x1'], 'x2':X_test['x2'], 'm':masses_test, 'y':y_test, 'pred':y_pred_keras}
@@ -237,22 +240,32 @@ plt.tight_layout()
 
 # # # # # plot weighted-data histograms after optimal cut
 
-# weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
-# y_weighted = weighted_df['label']
-# print('\noptimal decision function cut is at ' + str(opt_df))
-# print('applying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
-# #X_weighted, _, y_weighted, _ = train_test_split(weighted_df, y_weighted, test_size=0.0, random_state=42)
-# xs_weighted = weighted_df.drop(['label', 'm'], axis=1)
-# weighted_df['pred'] = binary_clf.predict(xs_weighted).ravel()
-#
-# fig = plt.figure(figsize=(11,7))
-# ax = plt.subplot(1,1,1)
-# hist_ms(weighted_df, min, max, nbins, ax)
-# hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
-# plt.title('masses, sig\_frac = ' + str(sig_frac))
-# plt.legend(loc='upper right')
-#
-# plt.tight_layout()
+weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width,
+                              noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
+y_weighted = weighted_df['label']
+# y_weighted_encoded, y_weighted_cats = y_weighted.factorize()
+# y_weighted_1hot = oh_enc.transform(y_weighted_encoded.reshape(-1,1)).toarray()
+y_weighted_1hot = pd.concat([weighted_df['label_0'], weighted_df['label_1']], axis=1, sort=False)
+
+print('applying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
+#X_weighted, _, y_weighted, _ = train_test_split(weighted_df, y_weighted, test_size=0.0, random_state=42)
+xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
+weighted_df['prob_0'] = binary_clf.predict(xs_weighted)[:,0]
+weighted_df['prob_1'] = binary_clf.predict(xs_weighted)[:,1]
+
+# calculate analysis power...
+raw_signif, pass_signif = compute_signif_binary(weighted_df, mean, width, n_sigmas)
+print('\n\nraw analysis significance:\t', str(raw_signif))
+print('pass analysis significance:\t', str(pass_signif))
+
+fig = plt.figure(figsize=(11,7))
+ax = plt.subplot(1,1,1)
+hist_ms(weighted_df, min, max, nbins, ax)
+hist_softmax_cut_ms(weighted_df, min, max, nbins, ax)
+plt.title('masses, sig\_frac = ' + str(sig_frac))
+plt.legend(loc='upper right')
+
+plt.tight_layout()
 
 if 'noplot' not in sys.argv:
     plt.show()

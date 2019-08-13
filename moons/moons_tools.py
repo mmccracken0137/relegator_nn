@@ -41,15 +41,20 @@ def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0
 
     # add mass feature to X
     ms = []
+    t0_1hot, t1_1hot = [], []
     x1_rot, x2_rot = [], []
     for idx, row in df.iterrows():
         if row['label'] == 1:
             ms.append(np.random.normal(mean, sigma))
+            t0_1hot.append(0)
+            t1_1hot.append(1)
         elif row['label'] == 0:
             rand = max + 1
             while rand > max or rand < min:
                 rand = np.random.exponential(beta)
             ms.append(rand)
+            t0_1hot.append(1)
+            t1_1hot.append(0)
 
         if row['label'] == 0:
             x1_rot.append(row['x1']*np.cos(angle) + row['x2']*np.sin(angle))
@@ -59,6 +64,8 @@ def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0
             x2_rot.append(row['x2'])
 
     df = df.assign(m = ms)
+    df = df.assign(label_0 = t0_1hot)
+    df = df.assign(label_1 = t1_1hot)
 
     # replace x1 with shifted x1s
     if angle != 0.0:
@@ -119,6 +126,37 @@ def hist_cut_ms(df, opt_df, min, max, nbins, ax):
     plt.xlabel(r'$m$')
     ax.legend(loc='upper right')
     return 0
+
+def hist_softmax_cut_ms(df, min, max, nbins, ax):
+    # signal
+    ax.hist(df['m'][df.prob_1>=0.5][df.label==0], alpha=0.3, fill=True,
+            range=(min, max), bins=nbins, histtype='step', label='type 0, post-cut')
+    ax.hist(df['m'][df.prob_1>=0.5][df.label==1], alpha=0.3, fill=True,
+            range=(min, max), bins=nbins, histtype='step', label='type 1, post-cut')
+    ax.hist(df['m'][df.prob_1>=0.5], alpha=0.3, fill=True,
+            range=(min, max), bins=nbins, histtype='step',
+            label='all, post-cut')
+    plt.xlabel(r'$m$')
+    ax.legend(loc='upper right')
+    return 0
+
+def compute_signif_regress(df, opt_df, m_cent, m_wid, n_sig):
+    n_raw_bkgd  = len(df['m'][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
+    n_raw_sig   = len(df['m'][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
+    n_pass_bkgd = len(df['m'][df.pred>=opt_df][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
+    n_pass_sig  = len(df['m'][df.pred>=opt_df][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
+    raw_signif  = n_raw_sig / np.sqrt(n_raw_sig + n_raw_bkgd)
+    pass_signif = n_pass_sig / np.sqrt(n_pass_sig + n_pass_bkgd)
+    return raw_signif, pass_signif
+
+def compute_signif_binary(df, m_cent, m_wid, n_sig):
+    n_raw_bkgd  = len(df['m'][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
+    n_raw_sig   = len(df['m'][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
+    n_pass_bkgd = len(df['m'][df.prob_1>=0.5][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
+    n_pass_sig  = len(df['m'][df.prob_1>=0.5][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
+    raw_signif  = n_raw_sig / np.sqrt(n_raw_sig + n_raw_bkgd)
+    pass_signif = n_pass_sig / np.sqrt(n_pass_sig + n_pass_bkgd)
+    return raw_signif, pass_signif
 
 def plot_confusion_matrix(y_true, y_pred, classes, ax,
                           normalize=False,

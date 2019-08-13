@@ -46,7 +46,7 @@ output_fname += ':sig_frac=' + str(sig_frac)
 
 # parameters for 'mass' distribution
 min, max = 0.0, 1.0
-mean, width = 0.5, 0.12
+mean, width, n_sigmas = 0.5, 0.12, 2.5
 
 # make the data and labels
 raw_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60)
@@ -54,7 +54,7 @@ df = raw_df.copy()
 
 y = df['label']
 masses = df['m']
-df.drop('label', axis=1, inplace=True)
+df.drop(['label', 'label_0', 'label_1'], axis=1, inplace=True)
 X_train, X_test, y_train, y_test = train_test_split(df, y, test_size=0.25, random_state=42)
 masses_train = X_train['m']
 masses_test = X_test['m']
@@ -113,17 +113,17 @@ print('\nauc score on test: %0.4f' % auc_keras, '\n')
 
 print('\n... NN trained, plotting...\n')
 
-fig = plt.figure(figsize=(11,7))
+fig = plt.figure(figsize=(11,6))
 nbins = int(np.sqrt(n_evts))
 
-n_rows, n_cols = 3, 3
-ax = plt.subplot(n_rows,n_cols,1)
-hist_xs(raw_df, 'x1', nbins, ax)
+n_rows, n_cols = 2, 3
+# ax = plt.subplot(n_rows,n_cols,1)
+# hist_xs(raw_df, 'x1', nbins, ax)
+#
+# ax = plt.subplot(n_rows,n_cols,2)
+# hist_xs(raw_df, 'x2', nbins, ax)
 
-ax = plt.subplot(n_rows,n_cols,2)
-hist_xs(raw_df, 'x2', nbins, ax)
-
-ax = plt.subplot(n_rows,n_cols, 4)
+ax = plt.subplot(n_rows,n_cols, 1)
 plt.plot(epochs, eval_accs, label='train, dropout=' + str(dropout_frac))
 plt.plot(epochs, train_accs, label='train')
 plt.plot(epochs, test_accs, label='test')
@@ -133,7 +133,7 @@ plt.legend(loc='lower right')
 plt.ylabel('accuracy')
 plt.xlabel('epoch')
 
-ax = plt.subplot(n_rows, n_cols, 5)
+ax = plt.subplot(n_rows, n_cols, 2)
 plt.plot(epochs, eval_loss, label='train, dropout=' + str(dropout_frac))
 plt.plot(epochs, train_loss, label='train')
 plt.plot(epochs, test_loss, label='test')
@@ -144,7 +144,7 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 
 roc_auc = metrics.auc(fpr_reg_clf, tpr_reg_clf)
-ax = plt.subplot(n_rows, n_cols, 6)
+ax = plt.subplot(n_rows, n_cols, 3)
 ax.plot(fpr_reg_clf, tpr_reg_clf, lw=1, label='ROC (area = %0.3f)'%(roc_auc))
 ax.plot([0, 1], [0, 1], '--', color=(0.6, 0.6, 0.6)) #, label='luck')
 plt.xlim([-0.05, 1.05])
@@ -170,8 +170,8 @@ nslices = 100
 dvals = np.linspace(min_df, max_df, num=nslices + 1)
 n_sig, n_bkgd, pwr = [], [], []
 for d in dvals:
-    n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d]))
-    n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d]))
+    n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d][np.abs(df.m - mean) < n_sigmas*width]))
+    n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d][np.abs(df.m - mean) < n_sigmas*width]))
     pwr.append(n_sig[-1]*sig_frac / np.sqrt(n_sig[-1]*sig_frac + n_bkgd[-1]*(1-sig_frac)))
 opt_pwr = np.max(pwr)
 opt_idx = pwr.index(opt_pwr)
@@ -201,7 +201,8 @@ x1_range = x1_max - x1_min
 x2_range = x2_max - x2_min
 x1_mesh, x2_mesh = np.meshgrid(np.arange(x1_min, x1_max, x1_range/100),
                                np.arange(x2_min, x2_max, x2_range/100))
-bounds = reg_clf.predict(np.c_[x1_mesh.ravel(), x2_mesh.ravel()])
+mesh_xs = np.c_[x1_mesh.ravel(), x2_mesh.ravel()]
+bounds = reg_clf.predict(mesh_xs)
 bounds = bounds.reshape(x1_mesh.shape)
 ax.contourf(x1_mesh, x2_mesh, bounds, alpha=0.4)
 
@@ -212,12 +213,13 @@ plt.tight_layout()
 
 # # # # # plot weighted-data histograms after optimal cut
 
-weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
+weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width,
+                              noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
 y_weighted = weighted_df['label']
 print('\noptimal decision function cut is at ' + str(opt_df))
 print('applying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
 #X_weighted, _, y_weighted, _ = train_test_split(weighted_df, y_weighted, test_size=0.0, random_state=42)
-xs_weighted = weighted_df.drop(['label', 'm'], axis=1)
+xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
 weighted_df['pred'] = reg_clf.predict(xs_weighted).ravel()
 
 fig = plt.figure(figsize=(11,7))
