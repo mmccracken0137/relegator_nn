@@ -20,6 +20,7 @@ from tensorflow.keras.layers import Dropout
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
 from moons_tools import *
+from moons_models import *
 
 # to use latex with matplotlib
 from matplotlib import rc
@@ -46,7 +47,7 @@ output_fname += ':sig_frac=' + str(sig_frac)
 
 # parameters for 'mass' distribution
 min, max = 0.0, 1.0
-mean, width, n_sigmas = 0.5, 0.12, 2.5
+mean, width, n_sigmas = 0.5, 0.05, 2.5
 
 # make the data and labels
 raw_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60)
@@ -67,56 +68,19 @@ masses_test = X_test['m']
 X_train.drop('m', axis=1, inplace=True)
 X_test.drop('m', axis=1, inplace=True)
 
-# model definitions
-def binary_softmax_model(n_inputs, n_hidden, hidden_nodes, input_dropout=0.0, biases=True):
-    model = Sequential()
-    if input_dropout > 0.0:
-        model.add(Dropout(input_dropout, input_shape=(n_inputs, )))
-        model.add(Dense(hidden_nodes[0], activation='relu', use_bias=biases))
-    else:
-        model.add(Dense(hidden_nodes[0], input_dim=n_inputs,
-                        activation='relu', use_bias=biases))
+dropout_frac = 0.01
+hidden_nodes = [20, 20, 10]
 
-    for i in range(n_hidden - 1):
-        model.add(Dense(hidden_nodes[i+1], activation='relu', use_bias=biases))
-
-    model.add(Dense(2, activation='softmax'))
-    # Compile model
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    return model
-
-def pred_to_class(X_in, model, n_classes):
-    pred_1hot = model.predict(X_in)
-    pred_class = [np.where(p == np.max(p)) for p in pred_1hot]
-    pred_class = np.reshape(pred_class, (np.shape(X_in)[0], 1))
-    return pred_class
-
-dropout_frac = 0.2
-binary_clf = binary_softmax_model(len(X_train.columns), 2, [20, 20, 10], input_dropout=dropout_frac)
+# initialize model...
+binary_clf = binary_softmax_model(len(X_train.columns), hidden_nodes, input_dropout=dropout_frac)
 print(binary_clf.summary())
 
 epochs, eval_loss, eval_accs, train_loss, train_accs = [], [], [], [], []
 test_loss, test_accs = [], []
 
-for i in range(n_epochs):
-    print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
-    #if i > 0:
-    history = binary_clf.fit(X_train, y_1hot_train, epochs=1, batch_size=100, verbose=1)
-
-    epochs.append(i)
-    eval_accs.append(history.history['accuracy'][-1])
-    eval_loss.append(history.history['loss'][-1])
-    loss, acc = binary_clf.evaluate(X_train, y_1hot_train, verbose=2)
-    train_accs.append(acc)
-    train_loss.append(loss)
-    print('training --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
-    loss, acc = binary_clf.evaluate(X_test, y_1hot_test, verbose=2)
-    test_accs.append(acc)
-    test_loss.append(loss)
-    print('testing --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
-
-    # sig_ot_comp.append(dec_score_comp(keras_model, X_train_scale[y_train>0.5], X_test_scale[y_test>0.5]))
-    # bkgd_ot_comp.append(dec_score_comp(keras_model, X_train_scale[y_train<0.5], X_test_scale[y_test<0.5]))
+# train model...
+train_results_df = train_model(binary_clf, X_train, y_1hot_train, X_test, y_1hot_test,
+                               n_epochs, batch_size=100, verbose=1, ot_shutoff=True)
 
 print('\n... NN trained, plotting...\n')
 
@@ -145,9 +109,10 @@ n_rows, n_cols = 2, 3
 # hist_xs(raw_df, 'x2', nbins, ax)
 
 ax = plt.subplot(n_rows,n_cols, 1)
-plt.plot(epochs, eval_accs, label='train, dropout=' + str(dropout_frac))
-plt.plot(epochs, train_accs, label='train')
-plt.plot(epochs, test_accs, label='test')
+plt.plot(train_results_df['eps'], train_results_df['eval_accs'], label='train, dropout=' + str(dropout_frac))
+plt.plot(train_results_df['eps'], train_results_df['train_accs'], label='train')
+plt.plot(train_results_df['eps'], train_results_df['test_accs'], label='test')
+plt.plot(train_results_df['eps'], train_results_df['test_acc_sma5'], label='test, sma5')
 #plt.plot(history.history['val_acc'])
 plt.title('model accuracy')
 plt.legend(loc='lower right')
@@ -155,15 +120,15 @@ plt.ylabel('accuracy')
 plt.xlabel('epoch')
 
 ax = plt.subplot(n_rows, n_cols, 2)
-plt.plot(epochs, eval_loss, label='train, dropout=' + str(dropout_frac))
-plt.plot(epochs, train_loss, label='train')
-plt.plot(epochs, test_loss, label='test')
+plt.plot(train_results_df['eps'], train_results_df['eval_loss'], label='train, dropout=' + str(dropout_frac))
+plt.plot(train_results_df['eps'], train_results_df['train_loss'], label='train')
+plt.plot(train_results_df['eps'], train_results_df['test_loss'], label='test')
+plt.plot(train_results_df['eps'], train_results_df['test_loss_sma5'], label='test sma5')
 #plt.plot(history.history['val_acc'])
 plt.title('loss (bin. cross-entropy)')
 plt.legend(loc='upper right')
 plt.ylabel('loss')
 plt.xlabel('epoch')
-
 ax = plt.subplot(n_rows,n_cols, n_rows * n_cols - 2)
 plot_xs(raw_df, ax)
 plt.title('noise = ' + str(noise) + ', angle = ' + str(angle))
@@ -218,20 +183,8 @@ plt.tight_layout()
 # # # # # plot decision boundaries
 fig = plt.figure(figsize=(11,7))
 ax = plt.subplot(1,1,1)
-# plot decision boundaries
-x1_min, x1_max = df['x1'].min() - 0.25, df['x1'].max() + 0.25
-x2_min, x2_max = df['x2'].min() - 0.25, df['x2'].max() + 0.25
-x1_range = x1_max - x1_min
-x2_range = x2_max - x2_min
-x1_mesh, x2_mesh = np.meshgrid(np.arange(x1_min, x1_max, x1_range/100),
-                               np.arange(x2_min, x2_max, x2_range/100))
-
-mesh_xs = np.c_[x1_mesh.ravel(), x2_mesh.ravel()]
-#print(pred_to_class(mesh_xs, binary_clf, 2))
-#print(np.shape(mesh_xs), np.shape(pred_to_class(mesh_xs, binary_clf, 2)))
-bounds = pred_to_class(mesh_xs, binary_clf, 2)
-bounds = bounds.reshape(x1_mesh.shape)
-ax.contourf(x1_mesh, x2_mesh, bounds, alpha=0.4)
+x1_mesh, x2_mesh, class_mesh = predict_bound_class(binary_clf, df, 2)
+ax.contourf(x1_mesh, x2_mesh, class_mesh, alpha=0.4)
 
 plot_xs(raw_df, ax)
 plt.title('noise = ' + str(noise) + ', angle = ' + str(angle) + ', epochs = ' + str(n_epochs))
@@ -258,11 +211,15 @@ raw_signif, pass_signif = compute_signif_binary(weighted_df, mean, width, n_sigm
 print('\n\nraw analysis significance:\t', str(raw_signif))
 print('pass analysis significance:\t', str(pass_signif))
 
-fig = plt.figure(figsize=(11,7))
-ax = plt.subplot(1,1,1)
+fig = plt.figure(figsize=(11,4))
+ax = plt.subplot(1,2,1)
 hist_ms(weighted_df, min, max, nbins, ax)
+plt.title('raw masses, sig\_frac = ' + str(sig_frac))
+plt.legend(loc='upper right')
+
+ax = plt.subplot(1,2,2)
 hist_softmax_cut_ms(weighted_df, min, max, nbins, ax)
-plt.title('masses, sig\_frac = ' + str(sig_frac))
+plt.title('masses pass nn, sig\_frac = ' + str(sig_frac))
 plt.legend(loc='upper right')
 
 plt.tight_layout()

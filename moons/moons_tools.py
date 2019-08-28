@@ -36,10 +36,6 @@ def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0
 
         df = pd.concat([df_sig, df_bkgd], ignore_index=True)
 
-    # if shift != 0.0:
-    #     df['x1'][df.label==1] = df['x1'][df.label==1] + shift
-
-    # add mass feature to X
     ms = []
     t0_1hot, t1_1hot = [], []
     x1_rot, x2_rot = [], []
@@ -116,12 +112,12 @@ def hist_weighted_ms(df, sig_weight, min, max, nbins, ax):
 
 def hist_cut_ms(df, opt_df, min, max, nbins, ax):
     # signal
-    ax.hist(df['m'][df.pred>=opt_df][df.label==0], alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype='step', label='type 0, post-cut')
-    ax.hist(df['m'][df.pred>=opt_df][df.label==1], alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype='step', label='type 1, post-cut')
-    ax.hist(df['m'][df.pred>=opt_df], alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype='step',
+    ax.hist(df['m'][df.pred>=opt_df][df.label==0], #alpha=0.3, fill=True,
+            range=(min, max), bins=nbins, histtype=u'step', label='type 0, post-cut')
+    ax.hist(df['m'][df.pred>=opt_df][df.label==1], #alpha=0.3, fill=True,
+            range=(min, max), bins=nbins, histtype=u'step', label='type 1, post-cut')
+    ax.hist(df['m'][df.pred>=opt_df], #alpha=0.3, fill=True,
+            range=(min, max), bins=nbins, histtype=u'step',
             label='all, post-cut')
     plt.xlabel(r'$m$')
     ax.legend(loc='upper right')
@@ -129,12 +125,12 @@ def hist_cut_ms(df, opt_df, min, max, nbins, ax):
 
 def hist_softmax_cut_ms(df, min, max, nbins, ax):
     # signal
-    ax.hist(df['m'][df.prob_1>=0.5][df.label==0], alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype='step', label='type 0, post-cut')
-    ax.hist(df['m'][df.prob_1>=0.5][df.label==1], alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype='step', label='type 1, post-cut')
-    ax.hist(df['m'][df.prob_1>=0.5], alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype='step',
+    ax.hist(df['m'][df.prob_1>=0.5][df.label==0], #alpha=0.3, #fill=True,
+            range=(min, max), bins=nbins, histtype=u'step', label='type 0, post-cut')
+    ax.hist(df['m'][df.prob_1>=0.5][df.label==1], #alpha=0.3, #fill=True,
+            range=(min, max), bins=nbins, histtype=u'step', label='type 1, post-cut')
+    ax.hist(df['m'][df.prob_1>=0.5], #alpha=0.3, #fill=True,
+            range=(min, max), bins=nbins, histtype=u'step',
             label='all, post-cut')
     plt.xlabel(r'$m$')
     ax.legend(loc='upper right')
@@ -174,6 +170,7 @@ def plot_confusion_matrix(y_true, y_pred, classes, ax,
 
     # Compute confusion matrix
     cm = metrics.confusion_matrix(y_true, y_pred)
+    print(cm)
     # Only use the labels that appear in the data
     #classes = classes[unique_labels(y_true, y_pred)]
     if normalize:
@@ -193,8 +190,8 @@ def plot_confusion_matrix(y_true, y_pred, classes, ax,
            # ... and label them with the respective list entries
            xticklabels=classes, yticklabels=classes,
            title=title,
-           ylabel='True label',
-           xlabel='Predicted label')
+           ylabel='true label',
+           xlabel='predicted label')
 
     # Rotate the tick labels and set their alignment.
     plt.setp(ax.get_xticklabels(), rotation=45, ha="right",
