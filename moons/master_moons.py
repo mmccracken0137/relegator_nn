@@ -50,6 +50,8 @@ if len(sys.argv) >= 6:
 if len(sys.argv) >= 7:
     sig_frac = float(sys.argv[6])
 
+ot_cutoff_depth = 10
+
 output_fname = 'reg_nn_pwrs/train_evts=' + str(n_evts)
 output_fname += ':noise=' + str(noise)
 output_fname += ':angle=' + str(angle)
@@ -101,7 +103,8 @@ print(clf.summary())
 
 # train model...
 train_results_df = train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
-                               batch_size=100, verbose=1, ot_shutoff=True)
+                               batch_size=100, verbose=1, ot_shutoff=True,
+                               ot_shutoff_depth=ot_cutoff_depth)
 
 print('\n... NN trained, plotting...\n')
 
@@ -116,7 +119,7 @@ ax = plt.subplot(n_rows,n_cols, 1)
 plt.plot(train_results_df['eps'], train_results_df['eval_accs'], label='train, dropout=' + str(dropout_frac))
 plt.plot(train_results_df['eps'], train_results_df['train_accs'], label='train')
 plt.plot(train_results_df['eps'], train_results_df['test_accs'], label='test')
-plt.plot(train_results_df['eps'], train_results_df['test_acc_sma5'], label='test, sma5')
+plt.plot(train_results_df['eps'], train_results_df['test_acc_sma'], label='test, sma' + str(ot_cutoff_depth))
 #plt.plot(history.history['val_acc'])
 plt.title('model accuracy')
 plt.legend(loc='lower right')
@@ -127,7 +130,7 @@ ax = plt.subplot(n_rows, n_cols, 2)
 plt.plot(train_results_df['eps'], train_results_df['eval_loss'], label='train, dropout=' + str(dropout_frac))
 plt.plot(train_results_df['eps'], train_results_df['train_loss'], label='train')
 plt.plot(train_results_df['eps'], train_results_df['test_loss'], label='test')
-plt.plot(train_results_df['eps'], train_results_df['test_loss_sma5'], label='test sma5')
+plt.plot(train_results_df['eps'], train_results_df['test_loss_sma'], label='test sma' + str(ot_cutoff_depth))
 #plt.plot(history.history['val_acc'])
 plt.title('loss (bin. cross-entropy)')
 plt.legend(loc='upper right')
@@ -170,9 +173,8 @@ else: #elif model_type == 'nn_binary':
     class_labels = ['type 0', 'type 1']
     if model_type == 'relegator':
         class_labels.append('rel.')
-        #y_test = y_test.append({'label_0': 0, 'label_1': 0, 'label_rel': 1}, ignore_index=True)
-        #y_1hot_pred_test = np.append(y_1hot_pred_test, [0,0,1])
-        print(y_test, y_1hot_pred_test)
+        y_test = y_test.append({'label_0': 0, 'label_1': 0, 'label_rel': 1}, ignore_index=True)
+        y_1hot_pred_test = np.append(y_1hot_pred_test, [[0,0,1]], axis=0)
 
     plot_confusion_matrix(y_test.to_numpy().argmax(axis=1),
                           y_1hot_pred_test.argmax(axis=1), class_labels, ax,
@@ -220,7 +222,7 @@ plt.title('noise = ' + str(noise) + ', angle = ' + str(angle) + ', epochs = ' + 
 plt.tight_layout()
 
 # # # # # # plot mass histograms after optimal cut
-print('applying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
+print('\napplying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
 
 fig = plt.figure(figsize=(11,4))
 weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width,
@@ -236,10 +238,11 @@ plt.legend(loc='upper right')
 
 ax = plt.subplot(1,2,2)
 
+raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 0, 0, 0, 0
 if model_type == 'regress':
     weighted_df['pred'] = clf.predict(xs_weighted).ravel()
     hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
-    raw_signif, pass_signif = compute_signif_regress(weighted_df, opt_df, mean, width, n_sigmas)
+    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_regress(weighted_df, opt_df, mean, width, n_sigmas)
 
 else: # model_type == 'nn_binary':
     weighted_df['prob_0'] = clf.predict(xs_weighted)[:,0]
@@ -247,7 +250,7 @@ else: # model_type == 'nn_binary':
     if model_type == 'relegator':
         weighted_df['prob_rel'] = clf.predict(xs_weighted)[:,1]
 
-    raw_signif, pass_signif = compute_signif_binary(weighted_df, mean, width, n_sigmas)
+    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean, width, n_sigmas)
     hist_softmax_cut_ms(weighted_df, min, max, nbins, ax)
 
 plt.title('masses pass nn, sig\_frac = ' + str(sig_frac))
@@ -255,9 +258,27 @@ plt.legend(loc='upper right')
 
 plt.tight_layout()
 
-print('\n\nraw analysis significance:\t', str(raw_signif))
+print('\nraw analysis significance:\t', str(raw_signif))
 print('pass analysis significance:\t', str(pass_signif))
 
+if 'write_results' in sys.argv:
+    print('\nwriting results to file ' + './' + model_type + '_results.txt')
+    f = open('./' + model_type + '_results.txt', 'a+')
+    out_arr = [sys.argv[2], str(noise), str(angle), str(sig_frac), str(n_epochs),
+               '%0.4f' % train_results_df['eps'].iloc[-1],
+               '%0.4f' % train_results_df['eval_accs'].iloc[-1],
+               '%0.4f' % train_results_df['train_accs'].iloc[-1],
+               '%0.4f' % train_results_df['test_accs'].iloc[-1],
+               '%0.4f' % train_results_df['eval_loss'].iloc[-1],
+               '%0.4f' % train_results_df['train_loss'].iloc[-1],
+               '%0.4f' % train_results_df['test_loss'].iloc[-1],
+               str(n_raw_bkgd), str(n_raw_sig),
+               str(n_pass_bkgd), str(n_pass_sig),
+               '%0.3f' % raw_signif,
+               '%0.3f' % pass_signif]
+    line = ','.join(out_arr) + '\n'
+    f.write(line)
+    f.close()
 
 if 'noplot' not in sys.argv:
     plt.show()

@@ -79,11 +79,12 @@ def relegator_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True):
     return model
 
 def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
-                batch_size=100, verbose=1, ot_shutoff=False):
+                batch_size=100, verbose=1, ot_shutoff=False,
+                ot_shutoff_depth=5):
     epochs, eval_loss, eval_accs, train_loss, train_accs = [], [], [], [], []
     test_loss, test_accs = [], []
-    test_acc_sma5 = []
-    test_loss_sma5 = []
+    test_acc_sma = []
+    test_loss_sma = []
 
     for i in range(n_epochs):
         print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
@@ -99,31 +100,31 @@ def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
         test_accs.append(acc)
         test_loss.append(loss)
 
-        if len(test_accs) < 5:
-            test_acc_sma5.append(np.sum(test_accs[0:len(test_accs)])/len(test_accs))
-            test_loss_sma5.append(np.sum(test_loss[0:len(test_loss)])/len(test_loss))
+        if len(test_accs) < ot_shutoff_depth:
+            test_acc_sma.append(np.sum(test_accs[0:len(test_accs)])/len(test_accs))
+            test_loss_sma.append(np.sum(test_loss[0:len(test_loss)])/len(test_loss))
         else:
-            test_acc_sma5.append(np.sum(test_accs[-5:])/5.0)
-            test_loss_sma5.append(np.sum(test_loss[-5:])/5.0)
+            test_acc_sma.append(np.sum(test_accs[-ot_shutoff_depth:])/float(ot_shutoff_depth))
+            test_loss_sma.append(np.sum(test_loss[-ot_shutoff_depth:])/float(ot_shutoff_depth))
 
         if verbose > 0:
             print('training --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
             print('testing --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
 
-        loss_sma5_slope = 0
-        if i > 5:
-            loss_sma5_slope, _, _, _, _ = stats.linregress([0,1,2], test_loss_sma5[-3:])
+        loss_sma_slope = 0
+        if i > ot_shutoff_depth:
+            epos = np.linspace(1, ot_shutoff_depth, ot_shutoff_depth)
+            loss_sma_slope, _, _, _, _ = stats.linregress(epos, test_loss_sma[-ot_shutoff_depth:])
 
-        #if ot_shutoff and test_loss_sma5diff[-1] > 0 and test_loss_sma5diff[-2] > 0:
-        if ot_shutoff and loss_sma5_slope > 0:
+        if ot_shutoff and loss_sma_slope > 0:
             break
 
     dict = {'eps': epochs,
             'eval_accs': eval_accs, 'eval_loss': eval_loss,
             'train_loss': train_loss, 'train_accs': train_accs,
             'test_loss': test_loss, 'test_accs': test_accs,
-            'test_acc_sma5': test_acc_sma5,
-            'test_loss_sma5': test_loss_sma5}
+            'test_acc_sma': test_acc_sma,
+            'test_loss_sma': test_loss_sma}
 
     train_results_df = pd.DataFrame(dict)
     print('\nmodel trained for ' + str(len(epochs)) + ' epochs')

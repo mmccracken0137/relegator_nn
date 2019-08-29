@@ -1,6 +1,6 @@
 #!/usr/bon/env python
 '''
-Code to generate 2-feature moons dataset with additional peaking/exponential feature.
+Tools for moons classifiers...
 '''
 
 import pandas as pd
@@ -20,6 +20,7 @@ def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0
     else:
         # background events
         n_bkgd = int(nevts*(1-sig_fraction))
+        print('making moons dataset...')
         print("number of background events:\t", n_bkgd)
         X, y = sklearn.datasets.make_moons(n_samples=2*n_bkgd, shuffle=True, noise=noise)
         df_bkgd = pd.DataFrame(dict(x1=X[:,0], x2=X[:,1], label=y))
@@ -143,7 +144,8 @@ def compute_signif_regress(df, opt_df, m_cent, m_wid, n_sig):
     n_pass_sig  = len(df['m'][df.pred>=opt_df][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
     raw_signif  = n_raw_sig / np.sqrt(n_raw_sig + n_raw_bkgd)
     pass_signif = n_pass_sig / np.sqrt(n_pass_sig + n_pass_bkgd)
-    return raw_signif, pass_signif
+    print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd)
+    return raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig
 
 def compute_signif_binary(df, m_cent, m_wid, n_sig):
     n_raw_bkgd  = len(df['m'][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
@@ -152,7 +154,15 @@ def compute_signif_binary(df, m_cent, m_wid, n_sig):
     n_pass_sig  = len(df['m'][df.prob_1>=0.5][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
     raw_signif  = n_raw_sig / np.sqrt(n_raw_sig + n_raw_bkgd)
     pass_signif = n_pass_sig / np.sqrt(n_pass_sig + n_pass_bkgd)
-    return raw_signif, pass_signif
+    print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd)
+    return raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig
+
+def print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd):
+    print('\nevents in signal region')
+    print('\t\t\t\traw\t\tpass')
+    print("number of background events:\t", n_raw_bkgd, '\t\t', n_pass_bkgd)
+    print("number of signal events:\t", n_raw_sig, '\t\t', n_pass_sig)
+    return
 
 def plot_confusion_matrix(y_true, y_pred, classes, ax,
                           normalize=False,
@@ -170,12 +180,11 @@ def plot_confusion_matrix(y_true, y_pred, classes, ax,
 
     # Compute confusion matrix
     cm = metrics.confusion_matrix(y_true, y_pred)
-    print(cm)
     # Only use the labels that appear in the data
     #classes = classes[unique_labels(y_true, y_pred)]
     if normalize:
         cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
-        print("Normalized confusion matrix")
+        print("\nNormalized confusion matrix")
     else:
         print('Confusion matrix, without normalization')
 
