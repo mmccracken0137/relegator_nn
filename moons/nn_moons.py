@@ -150,7 +150,7 @@ opt_pwr = np.max(pwr)
 opt_idx = pwr.index(opt_pwr)
 opt_df  = dvals[opt_idx]
 ax.plot(dvals, pwr, label='sig fraction = ' + str(sig_frac))
-plt.xlabel('decision function value')
+plt.xlabel(r'decision function value, $\eta$')
 plt.ylabel(r'$S / \sqrt{S+B}$')
 plt.axvline(x=opt_df, color='lightgray', dashes=(1,1))
 plt.legend(loc='lower right')

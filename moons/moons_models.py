@@ -73,21 +73,24 @@ def relegator_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True):
     for i in range(n_hidden - 1):
         model.add(Dense(hidden_nodes[i+1], activation='relu', use_bias=biases))
 
-    model.add(Dense(3, activation='softmax'))
+    out_layer = model.add(Dense(3, activation='softmax'))
     # Compile model
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss=relegator_loss(out_layer), optimizer='adam', metrics=['accuracy'])
     return model
 
 def relegator_loss(layer):
-    def loss(y_truth, y_pred):
+    def loss(y_truth, y_pred): #, n_sig, n_bkgd, sig_frac):
         n_cats = len(y_truth[0])
         sum = 0
         for i in range(len(y_truth)):
             for j in n_cats:
                 sum += -y_truth[i][j]*np.log(y_pred[i][j])
+        # sum += np.sqrt(n_sig * sig_frac + n_bkgd) / n_sig / sig_frac
         return sum
     return loss
 
+# def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
 def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
                 batch_size=100, verbose=1, ot_shutoff=False,
                 ot_shutoff_depth=5):
@@ -151,6 +154,8 @@ def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs,
     test_loss, test_accs = [], []
     test_acc_sma = []
     test_loss_sma = []
+
+    train_ds = to_tfds(X_train, y_train, batch_size=512)
 
     for i in range(n_epochs):
         print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
@@ -225,3 +230,21 @@ def predict_bound_class(model, df, n_outputs):
         class_mesh = pred_1hot_to_class(mesh_xs, model, n_outputs)
     class_mesh = class_mesh.reshape(x1_mesh.shape)
     return x1_mesh, x2_mesh, class_mesh
+
+def df_to_tfdataset(df, feats_arr, labels_arr):
+    tf_ds = (tf.data.Dataset.from_tensor_slices((tf.cast(df[feats_arr].values, tf.float32),
+                                                 tf.cast(df[labels_arr].values, tf.int32))))
+    return tf_ds
+
+# def np_to_tfdataset(df, feats_arr, labels_arr, batch_size=128):
+#     fnames = ['x1', 'x2']
+#     tnames = ['
+#     features = X_train[
+#     tf_ds = tf.data.Dataset.from_tensor_slices((features, labels))
+#     return tf_ds
+
+def to_tfds(X, y, batch_size=128):
+    feats_arr = ['x1', 'x2']
+    tf_ds = tf.data.Dataset.from_tensor_slices((tf.cast(X[feats_arr].values, tf.float32),
+                                                 tf.cast(y.values, tf.int32))).repeat().batch(batch_size)
+    return tf_ds

@@ -109,7 +109,7 @@ if model_type != 'relegator':
                                    ot_shutoff_depth=ot_cutoff_depth)
 else:
     train_results_df = train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs,
-                                       batch_size=100, verbose=1, ot_shutoff=True,
+                                       batch_size=512, verbose=1, ot_shutoff=True,
                                        ot_shutoff_depth=ot_cutoff_depth)
 
 
