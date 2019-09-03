@@ -45,6 +45,8 @@ output_fname += ':angle=' + str(angle)
 output_fname += ':epochs=' + str(n_epochs)
 output_fname += ':sig_frac=' + str(sig_frac)
 
+ot_cutoff_depth = 5
+
 # parameters for 'mass' distribution
 min, max = 0.0, 1.0
 mean, width, n_sigmas = 0.5, 0.05, 2.5
@@ -80,7 +82,8 @@ test_loss, test_accs = [], []
 
 # train model...
 train_results_df = train_model(binary_clf, X_train, y_1hot_train, X_test, y_1hot_test,
-                               n_epochs, batch_size=100, verbose=1, ot_shutoff=True)
+                               n_epochs, batch_size=100, verbose=1, ot_shutoff=True,
+                               ot_shutoff_depth=ot_cutoff_depth)
 
 print('\n... NN trained, plotting...\n')
 
@@ -112,7 +115,7 @@ ax = plt.subplot(n_rows,n_cols, 1)
 plt.plot(train_results_df['eps'], train_results_df['eval_accs'], label='train, dropout=' + str(dropout_frac))
 plt.plot(train_results_df['eps'], train_results_df['train_accs'], label='train')
 plt.plot(train_results_df['eps'], train_results_df['test_accs'], label='test')
-plt.plot(train_results_df['eps'], train_results_df['test_acc_sma5'], label='test, sma5')
+plt.plot(train_results_df['eps'], train_results_df['test_acc_sma'], label='test, sma' + str(ot_cutoff_depth))
 #plt.plot(history.history['val_acc'])
 plt.title('model accuracy')
 plt.legend(loc='lower right')
@@ -123,7 +126,7 @@ ax = plt.subplot(n_rows, n_cols, 2)
 plt.plot(train_results_df['eps'], train_results_df['eval_loss'], label='train, dropout=' + str(dropout_frac))
 plt.plot(train_results_df['eps'], train_results_df['train_loss'], label='train')
 plt.plot(train_results_df['eps'], train_results_df['test_loss'], label='test')
-plt.plot(train_results_df['eps'], train_results_df['test_loss_sma5'], label='test sma5')
+plt.plot(train_results_df['eps'], train_results_df['test_loss_sma'], label='test sma' + str(ot_cutoff_depth))
 #plt.plot(history.history['val_acc'])
 plt.title('loss (bin. cross-entropy)')
 plt.legend(loc='upper right')
@@ -207,7 +210,7 @@ weighted_df['prob_0'] = binary_clf.predict(xs_weighted)[:,0]
 weighted_df['prob_1'] = binary_clf.predict(xs_weighted)[:,1]
 
 # calculate analysis power...
-raw_signif, pass_signif = compute_signif_binary(weighted_df, mean, width, n_sigmas)
+raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean, width, n_sigmas)
 print('\n\nraw analysis significance:\t', str(raw_signif))
 print('pass analysis significance:\t', str(pass_signif))
 
