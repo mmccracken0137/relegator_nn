@@ -20,6 +20,7 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
+import tensorflow.keras.backend as K
 from moons_tools import *
 
 # model definitions
@@ -59,36 +60,6 @@ def binary_softmax_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True)
     # Compile model
     model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
     return model
-
-def relegator_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True):
-    n_hidden = len(hidden_nodes)
-    model = Sequential()
-    if input_dropout > 0.0:
-        model.add(Dropout(input_dropout, input_shape=(n_inputs, )))
-        model.add(Dense(hidden_nodes[0], activation='relu', use_bias=biases))
-    else:
-        model.add(Dense(hidden_nodes[0], input_dim=n_inputs,
-                        activation='relu', use_bias=biases))
-
-    for i in range(n_hidden - 1):
-        model.add(Dense(hidden_nodes[i+1], activation='relu', use_bias=biases))
-
-    out_layer = model.add(Dense(3, activation='softmax'))
-    # Compile model
-    # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.compile(loss=relegator_loss(out_layer), optimizer='adam', metrics=['accuracy'])
-    return model
-
-def relegator_loss(layer):
-    def loss(y_truth, y_pred): #, n_sig, n_bkgd, sig_frac):
-        n_cats = len(y_truth[0])
-        sum = 0
-        for i in range(len(y_truth)):
-            for j in n_cats:
-                sum += -y_truth[i][j]*np.log(y_pred[i][j])
-        # sum += np.sqrt(n_sig * sig_frac + n_bkgd) / n_sig / sig_frac
-        return sum
-    return loss
 
 # def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
 def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
@@ -147,7 +118,49 @@ def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
     print('final test accuracy:\t' + str(test_accs[-1]))
     return train_results_df
 
-def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs,
+def cce_loss(y_true, y_pred):
+    sum = K.categorical_crossentropy(y_true, y_pred)
+    return sum
+
+# def relegator_loss(n_sig_pred, n_bkgd_pred, sig_frac, sig_idx=1):
+#     def loss(y_truth, y_pred):
+#         n_S = K.
+#         sum = K.categorical_crossentropy(y_truth, y_pred) + n_bkgd_pred
+#         return sum
+#     return loss
+
+def relegator_loss(sig_frac, sig_idx=1):
+    def loss(y_truth, y_pred):
+        # n_evts = K.int_shape(y_truth)[0]
+        print("NEVTS", K.shape(y_truth))
+        y_pred_1hot = (y_pred == K.max(y_pred, axis=1)) #.astype(int)
+        n_S = K.sum(y_pred[:,sig_idx])
+        n_B = K.sum(y_pred) - n_S
+        n_tot = K.sum(y_pred)
+        sum = K.categorical_crossentropy(y_truth, y_pred) - n_S / K.sqrt(n_B + sig_frac * n_S) / n_tot
+        return sum
+    return loss
+
+def relegator_model(n_inputs, hidden_nodes, loss_fcn, input_dropout=0.0, biases=True):
+    n_hidden = len(hidden_nodes)
+    model = Sequential()
+    if input_dropout > 0.0:
+        model.add(Dropout(input_dropout, input_shape=(n_inputs, )))
+        model.add(Dense(hidden_nodes[0], activation='relu', use_bias=biases))
+    else:
+        model.add(Dense(hidden_nodes[0], input_dim=n_inputs,
+                        activation='relu', use_bias=biases))
+
+    for i in range(n_hidden - 1):
+        model.add(Dense(hidden_nodes[i+1], activation='relu', use_bias=biases))
+
+    out_layer = model.add(Dense(3, activation='softmax'))
+    # Compile model
+    # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    model.compile(loss=loss_fcn, optimizer='adam', metrics=['accuracy'])
+    return model
+
+def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
                     batch_size=100, verbose=1, ot_shutoff=False,
                     ot_shutoff_depth=5):
     epochs, eval_loss, eval_accs, train_loss, train_accs = [], [], [], [], []
@@ -156,6 +169,9 @@ def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs,
     test_loss_sma = []
 
     train_ds = to_tfds(X_train, y_train, batch_size=512)
+
+    # rel_loss = relegator_loss(n_sig_pred_train, n_bkgd_pred_train, sig_frac,
+    #                           sig_idx=1)
 
     for i in range(n_epochs):
         print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
@@ -248,3 +264,23 @@ def to_tfds(X, y, batch_size=128):
     tf_ds = tf.data.Dataset.from_tensor_slices((tf.cast(X[feats_arr].values, tf.float32),
                                                  tf.cast(y.values, tf.int32))).repeat().batch(batch_size)
     return tf_ds
+
+def get_ns_truth(y_1hot, sig_idx=1):
+    # n_sig = np.sum(y_1hot[:,sig_position], axis=0)
+    # n_bkgd = np.sum(y_1hot) - n_sig
+    n_sig, n_bkgd = 0, 0
+    for snip in y_1hot:
+        if snip[sig_idx] == 1:
+            n_sig += 1
+        else:
+            n_bkgd += 1
+    return n_sig, n_bkgd
+
+def get_ns_pred(y_1hot, sig_idx=1):
+    n_sig, n_bkgd = 0, 0
+    for snip in y_1hot:
+        if np.argmax(snip) == sig_idx:
+            n_sig += 1
+        else:
+            n_bkgd += 1
+    return n_sig, n_bkgd

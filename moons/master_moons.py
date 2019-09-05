@@ -50,7 +50,7 @@ if len(sys.argv) >= 6:
 if len(sys.argv) >= 7:
     sig_frac = float(sys.argv[6])
 
-ot_cutoff_depth = 10
+ot_cutoff_depth = 5
 
 output_fname = 'reg_nn_pwrs/train_evts=' + str(n_evts)
 output_fname += ':noise=' + str(noise)
@@ -85,7 +85,14 @@ hidden_nodes = [20, 20, 10]
 
 # initialize model...
 clf = None
+rel_loss = None
 n_outs = 0
+
+# n_sig_truth_train, n_bkgd_truth_train = get_ns_truth(y_train)
+# n_sig_pred_train, n_bkgd_pred_train = get_ns_pred(y_train)
+# n_sig_truth_test, n_bkgd_truth_test = get_ns_truth(y_test)
+# n_sig_pred_test, n_bkgd_pred_test = get_ns_pred(y_test)
+
 if model_type == 'regress': #, 'nn_binary', 'relegator']:
     clf = regressor_model(len(X_train.columns), hidden_nodes, input_dropout=dropout_frac)
     n_outs = 1
@@ -93,7 +100,9 @@ elif model_type == 'nn_binary':
     clf = binary_softmax_model(len(X_train.columns), hidden_nodes, input_dropout=dropout_frac)
     n_outs = 2
 elif model_type == 'relegator':
-    clf = relegator_model(len(X_train.columns), hidden_nodes, input_dropout=dropout_frac)
+    # rel_loss = relegator_loss(n_sig_pred_train, n_bkgd_pred_train, sig_frac)
+    rel_loss = relegator_loss(sig_frac)
+    clf = relegator_model(len(X_train.columns), hidden_nodes, rel_loss, input_dropout=dropout_frac)
     n_outs = 3
 else:
     print('error: model type \"' + model_type + '\" not quite ready...')
@@ -108,7 +117,7 @@ if model_type != 'relegator':
                                    batch_size=100, verbose=1, ot_shutoff=True,
                                    ot_shutoff_depth=ot_cutoff_depth)
 else:
-    train_results_df = train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs,
+    train_results_df = train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
                                        batch_size=512, verbose=1, ot_shutoff=True,
                                        ot_shutoff_depth=ot_cutoff_depth)
 
@@ -179,7 +188,7 @@ else: #elif model_type == 'nn_binary':
     print('\ntesting results...')
     class_labels = ['type 0', 'type 1']
     if model_type == 'relegator':
-        class_labels.append('rel.')
+        class_labels.append('releg.')
         y_test = y_test.append({'label_0': 0, 'label_1': 0, 'label_rel': 1}, ignore_index=True)
         y_1hot_pred_test = np.append(y_1hot_pred_test, [[0,0,1]], axis=0)
 
@@ -232,7 +241,8 @@ plt.tight_layout()
 print('\napplying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
 
 fig = plt.figure(figsize=(11,4))
-weighted_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width,
+weighted_n_evts = n_evts # 50000
+weighted_df = make_moons_mass(weighted_n_evts, min, max, mean=mean, sigma=width,
                               noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
 y_weighted = weighted_df['label']
 y_weighted_1hot = pd.concat([weighted_df['label_0'], weighted_df['label_1']], axis=1, sort=False)
