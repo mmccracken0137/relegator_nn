@@ -3,6 +3,7 @@
 Code to generate 2-feature moons dataset with additional peaking/exponential feature.
 '''
 
+from colorama import Fore, Back, Style
 import pandas as pd
 import numpy as np
 import sklearn.datasets
@@ -88,8 +89,8 @@ def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
             test_acc_sma.append(np.sum(test_accs[0:len(test_accs)])/len(test_accs))
             test_loss_sma.append(np.sum(test_loss[0:len(test_loss)])/len(test_loss))
         else:
-            test_acc_sma.append(np.sum(test_accs[-ot_shutoff_depth:])/float(ot_shutoff_depth))
-            test_loss_sma.append(np.sum(test_loss[-ot_shutoff_depth:])/float(ot_shutoff_depth))
+            test_acc_sma.append(np.round(np.sum(test_accs[-ot_shutoff_depth:])/float(ot_shutoff_depth), 4))
+            test_loss_sma.append(np.round(np.sum(test_loss[-ot_shutoff_depth:])/float(ot_shutoff_depth), 4))
 
         if verbose > 0:
             print('training --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
@@ -102,7 +103,7 @@ def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
             loss_slope, _, _, _, _ = stats.linregress(epos, test_loss[-ot_shutoff_depth:])
 
         # if ot_shutoff and loss_sma_slope > 0:
-        if ot_shutoff and loss_slope > 0:
+        if ot_shutoff and i > 10 and loss_slope >= 0:
             break
 
     dict = {'eps': epochs,
@@ -122,22 +123,19 @@ def cce_loss(y_true, y_pred):
     sum = K.categorical_crossentropy(y_true, y_pred)
     return sum
 
-# def relegator_loss(n_sig_pred, n_bkgd_pred, sig_frac, sig_idx=1):
-#     def loss(y_truth, y_pred):
-#         n_S = K.
-#         sum = K.categorical_crossentropy(y_truth, y_pred) + n_bkgd_pred
-#         return sum
-#     return loss
-
 def relegator_loss(sig_frac, sig_idx=1):
     def loss(y_truth, y_pred):
-        # n_evts = K.int_shape(y_truth)[0]
-        print("NEVTS", K.shape(y_truth))
-        y_pred_1hot = (y_pred == K.max(y_pred, axis=1)) #.astype(int)
-        n_S = K.sum(y_pred[:,sig_idx])
-        n_B = K.sum(y_pred) - n_S
-        n_tot = K.sum(y_pred)
-        sum = K.categorical_crossentropy(y_truth, y_pred) - n_S / K.sqrt(n_B + sig_frac * n_S) / n_tot
+        # print(Fore.RED + 'NCATS', K.shape(y_pred))
+        # print(Fore.BLUE + 'NCATS', K.shape(y_truth))
+        # print(Style.RESET_ALL)
+        sig_mask = y_truth[:,sig_idx]
+        bkgd_mask = y_truth[:,0]
+        n_S  = K.sum(y_pred[:,sig_idx] * sig_mask) # total prob of truth signal events
+        n_B = K.sum(y_pred[:,sig_idx] * bkgd_mask) # total prob of truth bkgd events
+        n_tot = K.sum(y_truth)
+        sum = 0
+        sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
+        sum -= n_S / K.sqrt(n_B + sig_frac * n_S) #/ n_tot # term for significance
         return sum
     return loss
 
@@ -173,6 +171,8 @@ def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
     # rel_loss = relegator_loss(n_sig_pred_train, n_bkgd_pred_train, sig_frac,
     #                           sig_idx=1)
 
+    relegator_loss(sig_frac)
+
     for i in range(n_epochs):
         print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
         history = clf.fit(X_train, y_train, epochs=1, batch_size=100, verbose=1)
@@ -191,8 +191,8 @@ def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
             test_acc_sma.append(np.sum(test_accs[0:len(test_accs)])/len(test_accs))
             test_loss_sma.append(np.sum(test_loss[0:len(test_loss)])/len(test_loss))
         else:
-            test_acc_sma.append(np.sum(test_accs[-ot_shutoff_depth:])/float(ot_shutoff_depth))
-            test_loss_sma.append(np.sum(test_loss[-ot_shutoff_depth:])/float(ot_shutoff_depth))
+            test_acc_sma.append(np.round(np.sum(test_accs[-ot_shutoff_depth:])/float(ot_shutoff_depth),4))
+            test_loss_sma.append(np.round(np.sum(test_loss[-ot_shutoff_depth:])/float(ot_shutoff_depth),4))
 
         if verbose > 0:
             print('training --> loss = %0.4f, \t acc = %0.4f'%(loss, acc))
@@ -205,7 +205,7 @@ def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
             loss_slope, _, _, _, _ = stats.linregress(epos, test_loss[-ot_shutoff_depth:])
 
         # if ot_shutoff and loss_sma_slope > 0:
-        if ot_shutoff and loss_slope > 0:
+        if ot_shutoff and i > 10 and loss_slope >= 0:
             break
 
     dict = {'eps': epochs,

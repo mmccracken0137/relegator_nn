@@ -9,6 +9,7 @@ model can take the values: regress, nn_binary, relegator
 Last three arguments may be omitted to run with default values.
 '''
 
+from colorama import Fore, Back, Style
 import pandas as pd
 import numpy as np
 import sklearn.datasets
@@ -101,6 +102,8 @@ elif model_type == 'nn_binary':
     n_outs = 2
 elif model_type == 'relegator':
     # rel_loss = relegator_loss(n_sig_pred_train, n_bkgd_pred_train, sig_frac)
+    # print(Fore.RED + "y_pred shape", np.shape(y_train))
+    # print(Style.RESET_ALL)
     rel_loss = relegator_loss(sig_frac)
     clf = relegator_model(len(X_train.columns), hidden_nodes, rel_loss, input_dropout=dropout_frac)
     n_outs = 3

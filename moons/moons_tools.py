@@ -158,10 +158,12 @@ def compute_signif_binary(df, m_cent, m_wid, n_sig):
     return raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig
 
 def print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd):
-    print('\nevents in signal region')
-    print('\t\t\t\traw\t\tpass')
-    print("number of background events:\t", n_raw_bkgd, '\t\t', n_pass_bkgd)
-    print("number of signal events:\t", n_raw_sig, '\t\t', n_pass_sig)
+    print('\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - -')
+    print('-events in signal region')
+    print('-\t\t\t\t raw\t\t pass')
+    print("-number of background events:\t", n_raw_bkgd, '\t\t', n_pass_bkgd)
+    print("-number of signal events:\t", n_raw_sig, '\t\t', n_pass_sig)
+    print('- - - - - - - - - - - - - - - - - - - - - - - - - - - - -')
     return
 
 def plot_confusion_matrix(y_true, y_pred, classes, ax,
@@ -180,6 +182,10 @@ def plot_confusion_matrix(y_true, y_pred, classes, ax,
 
     # Compute confusion matrix
     cm = metrics.confusion_matrix(y_true, y_pred)
+
+    print("\nRaw confusion matrix")
+    print(cm)
+
     # Only use the labels that appear in the data
     #classes = classes[unique_labels(y_true, y_pred)]
     if normalize:
