@@ -243,7 +243,7 @@ plt.tight_layout()
 # # # # # # plot mass histograms after optimal cut
 print('\napplying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
 
-fig = plt.figure(figsize=(11,4))
+fig = plt.figure(figsize=(11,6))
 weighted_n_evts = n_evts # 50000
 weighted_df = make_moons_mass(weighted_n_evts, min, max, mean=mean, sigma=width,
                               noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
@@ -251,17 +251,25 @@ y_weighted = weighted_df['label']
 y_weighted_1hot = pd.concat([weighted_df['label_0'], weighted_df['label_1']], axis=1, sort=False)
 xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
 
-ax = plt.subplot(1,2,1)
-hist_ms(weighted_df, min, max, nbins, ax)
+# ax = plt.subplot(1,2,1)
+ax = plt.subplot2grid((3, 2), (0, 0), rowspan=2)
+cents, occs, bkgds = hist_ms(weighted_df, min, max, nbins, ax)
 plt.title('masses, sig\_frac = ' + str(sig_frac))
 plt.legend(loc='upper right')
 
-ax = plt.subplot(1,2,2)
+ax = plt.subplot2grid((3, 2), (2, 0))
+ax.yaxis.grid(True)
+hist_diff_signif(cents, occs, bkgds)
+plt.ylim((-10, 10))
+
+# ax = plt.subplot(1,2,2)
+ax = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
 
 raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 0, 0, 0, 0
+cents, occs, bkgds = 0, 0, 0
 if model_type == 'regress':
     weighted_df['pred'] = clf.predict(xs_weighted).ravel()
-    hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
+    cents, occs, bkgds = hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
     raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_regress(weighted_df, opt_df, mean, width, n_sigmas)
 
 else: # model_type == 'nn_binary':
@@ -270,11 +278,16 @@ else: # model_type == 'nn_binary':
     if model_type == 'relegator':
         weighted_df['prob_rel'] = clf.predict(xs_weighted)[:,1]
 
+    cents, occs, bkgds = hist_softmax_cut_ms(weighted_df, min, max, nbins, ax)
     raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean, width, n_sigmas)
-    hist_softmax_cut_ms(weighted_df, min, max, nbins, ax)
 
 plt.title('masses pass nn, sig\_frac = ' + str(sig_frac))
 plt.legend(loc='upper right')
+
+ax = plt.subplot2grid((3, 2), (2, 1))
+ax.yaxis.grid(True)
+hist_diff_signif(cents, occs, bkgds)
+plt.ylim((-10, 10))
 
 plt.tight_layout()
 

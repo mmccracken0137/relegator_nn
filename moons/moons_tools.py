@@ -3,12 +3,14 @@
 Tools for moons classifiers...
 '''
 
+from colorama import Fore, Back, Style
 import pandas as pd
 import numpy as np
 from sklearn import preprocessing, metrics
 import sklearn.datasets
 import matplotlib.pyplot as plt
 import sys
+from scipy.optimize import curve_fit
 
 def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0, sig_fraction=0.5):
     # signal is type 1...
@@ -93,23 +95,45 @@ def hist_xs(df, tag, nbins, ax):
 def hist_ms(df, min, max, nbins, ax):
     ax.hist(df['m'][df.label==0], range=(min, max), bins=nbins, histtype=u'step', label='type 0')
     ax.hist(df['m'][df.label==1], range=(min, max), bins=nbins, histtype=u'step', label='type 1')
-    ax.hist(df['m'], range=(min, max), bins=nbins, histtype=u'step', label='all events')
-    plt.xlabel(r'$m$')
-    ax.legend(loc='upper right')
-    return 0
+    occs, edges, _ = ax.hist(df['m'], range=(min, max), bins=nbins, histtype=u'step', label='all events')
+    cents = edges[:-1] + np.diff(edges) / 2
+    pars = fit_mass_hist(cents, occs)
+    ax.plot(edges, f_expbkgd(edges, pars[3], pars[4]), label='bkgd fit',
+            alpha=0.8, linestyle=':', color='cornflowerblue')
 
-def hist_weighted_ms(df, sig_weight, min, max, nbins, ax):
-    # signal
-    ax.hist(df['m'][df.y==0],
-            range=(min, max), bins=nbins, histtype=u'step', label='type 0')
-    ax.hist(df['m'][df.y==1],
-            weights=sig_weight*np.ones(len(df['m'][df.y==1])),
-            range=(min, max), bins=nbins, histtype=u'step', label='type 1')
-    ax.hist(df['m'], range=(min, max),
-            bins=nbins, histtype=u'step', label='all')
     plt.xlabel(r'$m$')
     ax.legend(loc='upper right')
-    return 0
+    return cents, occs, f_expbkgd(cents, pars[3], pars[4])
+
+# def hist_weighted_ms(df, sig_weight, min, max, nbins, ax):
+#     # signal
+#     ax.hist(df['m'][df.y==0],
+#             range=(min, max), bins=nbins, histtype=u'step', label='type 0')
+#     ax.hist(df['m'][df.y==1],
+#             weights=sig_weight*np.ones(len(df['m'][df.y==1])),
+#             range=(min, max), bins=nbins, histtype=u'step', label='type 1')
+#     ax.hist(df['m'], range=(min, max),
+#             bins=nbins, histtype=u'step', label='all')
+#     plt.xlabel(r'$m$')
+#     ax.legend(loc='upper right')
+#     return 0
+
+def f_gauss_expbkgd(x, a, mu, sig, b, lam):
+    f = f_gaussian(x, a, mu, sig) + f_expbkgd(x, b, lam)
+    return f
+
+def f_gaussian(x, a, mu, sig):
+    f = a*np.exp(-(x - mu)**2/2/sig**2)
+    return f
+
+def f_expbkgd(x, b, lam):
+    f = b*np.exp(-lam*x)
+    return f
+
+def fit_mass_hist(x, y):
+    p_vals=[10, 0.5, 0.02, np.sqrt(np.sum(y)), 1.0]
+    popt, pcov = curve_fit(f_gauss_expbkgd, x, y, p0=p_vals)
+    return popt
 
 def hist_cut_ms(df, opt_df, min, max, nbins, ax):
     # signal
@@ -117,12 +141,16 @@ def hist_cut_ms(df, opt_df, min, max, nbins, ax):
             range=(min, max), bins=nbins, histtype=u'step', label='type 0, post-cut')
     ax.hist(df['m'][df.pred>=opt_df][df.label==1], #alpha=0.3, fill=True,
             range=(min, max), bins=nbins, histtype=u'step', label='type 1, post-cut')
-    ax.hist(df['m'][df.pred>=opt_df], #alpha=0.3, fill=True,
-            range=(min, max), bins=nbins, histtype=u'step',
-            label='all, post-cut')
+    occs, edges, _ = ax.hist(df['m'][df.pred>=opt_df], #alpha=0.3, fill=True,
+                          range=(min, max), bins=nbins, histtype=u'step',
+                          label='all, post-cut')
+    cents = edges[:-1] + np.diff(edges) / 2
+    pars = fit_mass_hist(cents, occs)
+    ax.plot(edges, f_expbkgd(edges, pars[3], pars[4]), label='bkgd fit',
+            alpha=0.8, linestyle=':', color='cornflowerblue')
     plt.xlabel(r'$m$')
     ax.legend(loc='upper right')
-    return 0
+    return cents, occs, f_expbkgd(cents, pars[3], pars[4])
 
 def hist_softmax_cut_ms(df, min, max, nbins, ax):
     # signal
@@ -130,11 +158,24 @@ def hist_softmax_cut_ms(df, min, max, nbins, ax):
             range=(min, max), bins=nbins, histtype=u'step', label='type 0, post-cut')
     ax.hist(df['m'][df.prob_1>=0.5][df.label==1], #alpha=0.3, #fill=True,
             range=(min, max), bins=nbins, histtype=u'step', label='type 1, post-cut')
-    ax.hist(df['m'][df.prob_1>=0.5], #alpha=0.3, #fill=True,
+    occs, edges, _ = ax.hist(df['m'][df.prob_1>=0.5], #alpha=0.3, #fill=True,
             range=(min, max), bins=nbins, histtype=u'step',
             label='all, post-cut')
+    cents = edges[:-1] + np.diff(edges) / 2
+    pars = fit_mass_hist(cents, occs)
+    ax.plot(edges, f_expbkgd(edges, pars[3], pars[4]), label='bkgd fit',
+            alpha=0.8, linestyle=':', color='cornflowerblue')
     plt.xlabel(r'$m$')
     ax.legend(loc='upper right')
+    return cents, occs, f_expbkgd(cents, pars[3], pars[4])
+
+def hist_diff_signif(x, y_tot, y_bkgd):
+    diff = np.subtract(y_tot, y_bkgd)
+    signif = diff / np.sqrt(diff + y_bkgd)
+    errs = np.sqrt(np.abs(diff)/y_bkgd) # approximate, TKTKTK
+    plt.errorbar(x, signif, yerr=errs, fmt='.k')
+    plt.ylabel(r'significance, $S / \sqrt{S+B}$')
+    plt.ylabel(r'$m$')
     return 0
 
 def compute_signif_regress(df, opt_df, m_cent, m_wid, n_sig):
@@ -158,12 +199,14 @@ def compute_signif_binary(df, m_cent, m_wid, n_sig):
     return raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig
 
 def print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd):
+    print(Fore.BLUE)
     print('\n- - - - - - - - - - - - - - - - - - - - - - - - - - - - -')
     print('-events in signal region')
     print('-\t\t\t\t raw\t\t pass')
     print("-number of background events:\t", n_raw_bkgd, '\t\t', n_pass_bkgd)
     print("-number of signal events:\t", n_raw_sig, '\t\t', n_pass_sig)
     print('- - - - - - - - - - - - - - - - - - - - - - - - - - - - -')
+    print(Style.RESET_ALL)
     return
 
 def plot_confusion_matrix(y_true, y_pred, classes, ax,
