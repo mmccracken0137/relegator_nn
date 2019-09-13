@@ -131,7 +131,7 @@ def f_expbkgd(x, b, lam):
     return f
 
 def fit_mass_hist(x, y):
-    p_vals=[10, 0.5, 0.02, np.sqrt(np.sum(y)), 1.0]
+    p_vals=[10, 0.5, 0.02, y[0]/2, 1.0]
     popt, pcov = curve_fit(f_gauss_expbkgd, x, y, p0=p_vals)
     return popt
 
@@ -169,10 +169,32 @@ def hist_softmax_cut_ms(df, min, max, nbins, ax):
     ax.legend(loc='upper right')
     return cents, occs, f_expbkgd(cents, pars[3], pars[4])
 
+def signif_function(n_s, n_b):
+    # sig = 0
+    # if n_s + n_b > 0:
+    sig = n_s / np.sqrt(n_s + n_b)
+    return sig
+
+def signif_error(n_s, n_b):
+    # err = (-n_s / 2 / (n_s + n_b)**(3/2) + (n_s + n_b)**(-1/2))**2
+    # err += n_s**2 / 4 / (n_s + n_b)**3
+    # err *= (n_s + n_b)**2
+
+    # err = 0
+    # if n_s + n_b > 0:
+    err = n_s**2 / 4 / (n_s + n_b)**2
+    err += (2*n_b + n_s)**2 / 4 / (n_s + n_b)**2
+    err = np.sqrt(err)
+    return err
+
 def hist_diff_signif(x, y_tot, y_bkgd):
+    idxs = np.array(np.nonzero(y_tot))
+    # y_tot = y_tot[idxs].flatten()
+    # y_bkgd = y_bkgd[idxs].flatten()
+
     diff = np.subtract(y_tot, y_bkgd)
-    signif = diff / np.sqrt(diff + y_bkgd)
-    errs = np.sqrt(np.abs(diff)/y_bkgd) # approximate, TKTKTK
+    signif = signif_function(diff, y_bkgd)
+    errs = signif_error(diff, y_bkgd) #np.sqrt(np.abs(diff)/y_bkgd) # approximate, TKTKTK
     plt.errorbar(x, signif, yerr=errs, fmt='.k')
     plt.ylabel(r'significance, $S / \sqrt{S+B}$')
     plt.ylabel(r'$m$')
@@ -183,8 +205,8 @@ def compute_signif_regress(df, opt_df, m_cent, m_wid, n_sig):
     n_raw_sig   = len(df['m'][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
     n_pass_bkgd = len(df['m'][df.pred>=opt_df][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
     n_pass_sig  = len(df['m'][df.pred>=opt_df][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
-    raw_signif  = n_raw_sig / np.sqrt(n_raw_sig + n_raw_bkgd)
-    pass_signif = n_pass_sig / np.sqrt(n_pass_sig + n_pass_bkgd)
+    raw_signif  = signif_function(n_raw_sig, n_raw_bkgd)
+    pass_signif = signif_function(n_pass_sig, n_pass_bkgd)
     print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd)
     return raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig
 
@@ -193,8 +215,8 @@ def compute_signif_binary(df, m_cent, m_wid, n_sig):
     n_raw_sig   = len(df['m'][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
     n_pass_bkgd = len(df['m'][df.prob_1>=0.5][df.label==0][np.abs(df.m - m_cent) < n_sig*m_wid])
     n_pass_sig  = len(df['m'][df.prob_1>=0.5][df.label==1][np.abs(df.m - m_cent) < n_sig*m_wid])
-    raw_signif  = n_raw_sig / np.sqrt(n_raw_sig + n_raw_bkgd)
-    pass_signif = n_pass_sig / np.sqrt(n_pass_sig + n_pass_bkgd)
+    raw_signif  = signif_function(n_raw_sig, n_raw_bkgd)
+    pass_signif = signif_function(n_pass_sig, n_pass_bkgd)
     print_pass_stats(n_raw_sig, n_pass_sig, n_raw_bkgd, n_pass_bkgd)
     return raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig
 
