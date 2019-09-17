@@ -11,6 +11,8 @@ import sklearn.datasets
 import matplotlib.pyplot as plt
 import sys
 from scipy.optimize import curve_fit
+import tensorflow.keras.backend as K
+import tensorflow as tf
 
 def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0, sig_fraction=0.5):
     # signal is type 1...
@@ -170,18 +172,17 @@ def hist_softmax_cut_ms(df, min, max, nbins, ax):
     return cents, occs, f_expbkgd(cents, pars[3], pars[4])
 
 def signif_function(n_s, n_b):
-    # sig = 0
-    # if n_s + n_b > 0:
-    sig = n_s / np.sqrt(n_s + n_b)
+    if tf.is_tensor(n_s): # for relegator loss
+        # sig = n_s / K.sqrt(n_s + n_b)
+        sig = tf.math.divide(n_s, K.sqrt(n_s + n_b))
+    else:
+        sig = n_s / np.sqrt(n_s + n_b)
+    # print("REL ENN ESS", n_s)
+    # print("REL ENN BEE", n_b)
+    # print("SIGNIF", sig)
     return sig
 
 def signif_error(n_s, n_b):
-    # err = (-n_s / 2 / (n_s + n_b)**(3/2) + (n_s + n_b)**(-1/2))**2
-    # err += n_s**2 / 4 / (n_s + n_b)**3
-    # err *= (n_s + n_b)**2
-
-    # err = 0
-    # if n_s + n_b > 0:
     err = n_s**2 / 4 / (n_s + n_b)**2
     err += (2*n_b + n_s)**2 / 4 / (n_s + n_b)**2
     err = np.sqrt(err)
@@ -189,15 +190,17 @@ def signif_error(n_s, n_b):
 
 def hist_diff_signif(x, y_tot, y_bkgd):
     idxs = np.array(np.nonzero(y_tot))
-    # y_tot = y_tot[idxs].flatten()
-    # y_bkgd = y_bkgd[idxs].flatten()
+    # remove points with zero n_tot
+    x = x[idxs].flatten()
+    y_tot = y_tot[idxs].flatten()
+    y_bkgd = y_bkgd[idxs].flatten()
 
     diff = np.subtract(y_tot, y_bkgd)
     signif = signif_function(diff, y_bkgd)
     errs = signif_error(diff, y_bkgd) #np.sqrt(np.abs(diff)/y_bkgd) # approximate, TKTKTK
     plt.errorbar(x, signif, yerr=errs, fmt='.k')
-    plt.ylabel(r'significance, $S / \sqrt{S+B}$')
-    plt.ylabel(r'$m$')
+    plt.ylabel(r'significance, $s / \sqrt{s+b}$')
+    plt.xlabel(r'$m$')
     return 0
 
 def compute_signif_regress(df, opt_df, m_cent, m_wid, n_sig):

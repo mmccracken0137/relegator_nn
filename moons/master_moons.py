@@ -60,11 +60,11 @@ output_fname += ':epochs=' + str(n_epochs)
 output_fname += ':sig_frac=' + str(sig_frac)
 
 # parameters for 'mass' distribution
-min, max = 0.0, 1.0
-mean, width, n_sigmas = 0.5, 0.05, 2.5
+min_mass, max_mass = 0.0, 1.0
+mean_mass, width_mass, n_sigmas = 0.5, 0.03, 2.5
 
 # make the data and labels
-raw_df = make_moons_mass(n_evts, min, max, mean=mean, sigma=width, noise=noise, angle=angle, beta=0.60)
+raw_df = make_moons_mass(n_evts, min_mass, max_mass, mean=mean_mass, sigma=width_mass, noise=noise, angle=angle, beta=0.60)
 df = raw_df.copy()
 
 y = df['label']
@@ -199,6 +199,7 @@ else: #elif model_type == 'nn_binary':
                           y_1hot_pred_test.argmax(axis=1), class_labels, ax,
                           normalize=True, title='confusion matrix, test')
 
+opt_df = 0.0
 if model_type == 'regress':
     ax = plt.subplot(n_rows,n_cols, 4)
     test_dict = {'x1':X_test['x1'], 'x2':X_test['x2'], 'm':masses_test, 'y':y_test, 'pred':y_pred_test}
@@ -208,8 +209,8 @@ if model_type == 'regress':
     dvals = np.linspace(min_df, max_df, num=nslices + 1)
     n_sig, n_bkgd, pwr = [], [], []
     for d in dvals:
-        n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d][np.abs(df.m - mean) < n_sigmas*width]))
-        n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d][np.abs(df.m - mean) < n_sigmas*width]))
+        n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d][np.abs(df.m - mean_mass) < n_sigmas*width_mass]))
+        n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d][np.abs(df.m - mean_mass) < n_sigmas*width_mass]))
         pwr.append(n_sig[-1]*sig_frac / np.sqrt(n_sig[-1]*sig_frac + n_bkgd[-1]*(1-sig_frac)))
     opt_pwr = np.max(pwr)
     opt_idx = pwr.index(opt_pwr)
@@ -232,7 +233,7 @@ plt.tight_layout()
 # # # # # # plot decision boundaries
 fig = plt.figure(figsize=(9,5.5))
 ax = plt.subplot(1,1,1)
-x1_mesh, x2_mesh, class_mesh = predict_bound_class(clf, df, n_outs)
+x1_mesh, x2_mesh, class_mesh = predict_bound_class(clf, df, n_outs, opt_df=opt_df)
 ax.contourf(x1_mesh, x2_mesh, class_mesh, alpha=0.4)
 
 plot_xs(raw_df, ax)
@@ -245,7 +246,7 @@ print('\napplying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '..
 
 fig = plt.figure(figsize=(11,6))
 weighted_n_evts = n_evts # 50000
-weighted_df = make_moons_mass(weighted_n_evts, min, max, mean=mean, sigma=width,
+weighted_df = make_moons_mass(weighted_n_evts, min_mass, max_mass, mean=mean_mass, sigma=width_mass,
                               noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
 y_weighted = weighted_df['label']
 y_weighted_1hot = pd.concat([weighted_df['label_0'], weighted_df['label_1']], axis=1, sort=False)
@@ -253,7 +254,8 @@ xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
 
 # ax = plt.subplot(1,2,1)
 ax = plt.subplot2grid((3, 2), (0, 0), rowspan=2)
-cents, occs, bkgds = hist_ms(weighted_df, min, max, nbins, ax)
+cents, occs, bkgds = hist_ms(weighted_df, min_mass, max_mass, nbins, ax)
+plt.xlim((min_mass, max_mass))
 plt.title('masses, sig\_frac = ' + str(sig_frac))
 plt.legend(loc='upper right')
 
@@ -261,6 +263,7 @@ ax = plt.subplot2grid((3, 2), (2, 0))
 ax.yaxis.grid(True)
 hist_diff_signif(cents, occs, bkgds)
 plt.ylim((-10, 10))
+plt.xlim((min_mass, max_mass))
 
 # ax = plt.subplot(1,2,2)
 ax = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
@@ -269,8 +272,8 @@ raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 
 cents, occs, bkgds = 0, 0, 0
 if model_type == 'regress':
     weighted_df['pred'] = clf.predict(xs_weighted).ravel()
-    cents, occs, bkgds = hist_cut_ms(weighted_df, opt_df, min, max, nbins, ax)
-    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_regress(weighted_df, opt_df, mean, width, n_sigmas)
+    cents, occs, bkgds = hist_cut_ms(weighted_df, opt_df, min_mass, max_mass, nbins, ax)
+    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_regress(weighted_df, opt_df, mean_mass, width_mass, n_sigmas)
 
 else: # model_type == 'nn_binary':
     weighted_df['prob_0'] = clf.predict(xs_weighted)[:,0]
@@ -278,16 +281,21 @@ else: # model_type == 'nn_binary':
     if model_type == 'relegator':
         weighted_df['prob_rel'] = clf.predict(xs_weighted)[:,1]
 
-    cents, occs, bkgds = hist_softmax_cut_ms(weighted_df, min, max, nbins, ax)
-    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean, width, n_sigmas)
+    cents, occs, bkgds = hist_softmax_cut_ms(weighted_df, min_mass, max_mass, nbins, ax)
+    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean_mass, width_mass, n_sigmas)
 
-plt.title('masses pass nn, sig\_frac = ' + str(sig_frac))
+plt.xlim((min_mass, max_mass))
+title_str = 'masses pass nn'
+if opt_df > 0:
+    title_str += ', optimal d.f. = ' + str(np.round(opt_df,3))
+plt.title(title_str)
 plt.legend(loc='upper right')
 
 ax = plt.subplot2grid((3, 2), (2, 1))
 ax.yaxis.grid(True)
 hist_diff_signif(cents, occs, bkgds)
 plt.ylim((-10, 10))
+plt.xlim((min_mass, max_mass))
 
 plt.tight_layout()
 

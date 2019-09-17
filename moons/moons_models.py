@@ -125,12 +125,18 @@ def cce_loss(y_true, y_pred):
 
 def relegator_loss(sig_frac, sig_idx=1):
     def loss(y_truth, y_pred):
+        # y_pred = tf.convert_to_tensor(y_pred, np.float32)
+        # y_truth = tf.convert_to_tensor(y_truth, np.float32)
         sig_mask = y_truth[:,sig_idx]
         bkgd_mask = y_truth[:,0]
         diff_01 = K.abs(y_pred[:,0] - y_pred[:,sig_idx])
-        n_S  = K.sum(y_pred[:,sig_idx] * sig_mask) # total prob of truth signal events
+        n_S = K.sum(y_pred[:,sig_idx] * sig_mask) # total prob of truth signal events
         n_B = K.sum(y_pred[:,sig_idx] * bkgd_mask) # total prob of truth bkgd events
+        print("REL ENN ESS", n_S)
+        print("REL ENN BEE", n_B)
+        # TKTKTK need to somehow bang these into numpy objects for signif fcn
         signif = signif_function(n_S, n_B)
+        print("SIGNIF", signif)
         n_tot = K.sum(y_truth)
         sum = 0
         sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
@@ -228,7 +234,7 @@ def pred_1hot_to_class(X_in, model, n_classes):
     pred_class = np.reshape(pred_class, (np.shape(X_in)[0], 1))
     return pred_class
 
-def predict_bound_class(model, df, n_outputs):
+def predict_bound_class(model, df, n_outputs, opt_df=0):
     x1_min, x1_max = df['x1'].min() - 0.25, df['x1'].max() + 0.25
     x2_min, x2_max = df['x2'].min() - 0.25, df['x2'].max() + 0.25
     x1_range = x1_max - x1_min
@@ -242,6 +248,9 @@ def predict_bound_class(model, df, n_outputs):
     class_mesh = []
     if n_outputs == 1:
         class_mesh = model.predict(mesh_xs)
+        if opt_df > 0.0:
+            class_mesh[class_mesh > opt_df]  = 1
+            class_mesh[class_mesh <= opt_df] = 0
     else:
         class_mesh = pred_1hot_to_class(mesh_xs, model, n_outputs)
     class_mesh = class_mesh.reshape(x1_mesh.shape)
