@@ -19,13 +19,14 @@ import tensorflow as tf  ## this code runs with tf2.0-cpu!!!
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Dropout
+from tensorflow.keras.optimizers import Adam
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
 import tensorflow.keras.backend as K
 from moons_tools import *
 
 # model definitions
-def regressor_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True):
+def regressor_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True, learning_rate=0.001):
     n_hidden = len(hidden_nodes)
     model = Sequential()
     if input_dropout > 0.0:
@@ -40,11 +41,12 @@ def regressor_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True):
 
     model.add(Dense(1, activation='sigmoid'))
     # Compile model
-    model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
+    opt = Adam(lr=learning_rate)
+    model.compile(loss='binary_crossentropy', optimizer=opt, metrics=['accuracy'])
     return model
 
 # model definitions
-def binary_softmax_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True):
+def binary_softmax_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True, learning_rate=0.001):
     n_hidden = len(hidden_nodes)
     model = Sequential()
     if input_dropout > 0.0:
@@ -59,7 +61,8 @@ def binary_softmax_model(n_inputs, hidden_nodes, input_dropout=0.0, biases=True)
 
     model.add(Dense(2, activation='softmax'))
     # Compile model
-    model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+    opt = Adam(lr=learning_rate)
+    model.compile(loss='categorical_crossentropy', optimizer=opt, metrics=['accuracy'])
     return model
 
 # def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
@@ -72,7 +75,7 @@ def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
     test_loss_sma = []
 
     for i in range(n_epochs):
-        print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
+        print('\nEPOCH ' + str(i) + '/' + str(n_epochs), ', learning rate: ' + str(K.eval(clf.optimizer.lr)))
         history = clf.fit(X_train, y_train, epochs=1, batch_size=100, verbose=1)
 
         epochs.append(i)
@@ -125,27 +128,23 @@ def cce_loss(y_true, y_pred):
 
 def relegator_loss(sig_frac, sig_idx=1):
     def loss(y_truth, y_pred):
-        # y_pred = tf.convert_to_tensor(y_pred, np.float32)
-        # y_truth = tf.convert_to_tensor(y_truth, np.float32)
         sig_mask = y_truth[:,sig_idx]
         bkgd_mask = y_truth[:,0]
         diff_01 = K.abs(y_pred[:,0] - y_pred[:,sig_idx])
         n_S = K.sum(y_pred[:,sig_idx] * sig_mask) # total prob of truth signal events
         n_B = K.sum(y_pred[:,sig_idx] * bkgd_mask) # total prob of truth bkgd events
-        print("REL ENN ESS", n_S)
-        print("REL ENN BEE", n_B)
-        # TKTKTK need to somehow bang these into numpy objects for signif fcn
         signif = signif_function(n_S, n_B)
-        print("SIGNIF", signif)
         n_tot = K.sum(y_truth)
         sum = 0
+        # sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
+        # sum -= sig_frac * signif #/ n_tot # term for significance
+
         sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
-        # sum -= n_S / K.sqrt(n_B + sig_frac * n_S) #/ n_tot # term for significance
-        sum -= sig_frac * signif #/ n_tot # term for significance
+        # sum -= (1 - diff_01) * sig_frac * signif #/ n_tot # term for significance
         return sum
     return loss
 
-def relegator_model(n_inputs, hidden_nodes, loss_fcn, input_dropout=0.0, biases=True):
+def relegator_model(n_inputs, hidden_nodes, loss_fcn, input_dropout=0.0, biases=True, learning_rate=0.001):
     n_hidden = len(hidden_nodes)
     model = Sequential()
     if input_dropout > 0.0:
@@ -161,7 +160,8 @@ def relegator_model(n_inputs, hidden_nodes, loss_fcn, input_dropout=0.0, biases=
     out_layer = model.add(Dense(3, activation='softmax'))
     # Compile model
     # model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
-    model.compile(loss=loss_fcn, optimizer='adam', metrics=['accuracy'])
+    opt = Adam(lr=learning_rate)
+    model.compile(loss=loss_fcn, optimizer=opt, metrics=['accuracy'])
     return model
 
 def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
@@ -180,7 +180,7 @@ def train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
     relegator_loss(sig_frac)
 
     for i in range(n_epochs):
-        print('\nEPOCH ' + str(i) + '/' + str(n_epochs))
+        print('\nEPOCH ' + str(i) + '/' + str(n_epochs), ', learning rate: \t' + str(K.eval(clf.optimizer.lr)))
         history = clf.fit(X_train, y_train, epochs=1, batch_size=100, verbose=1)
 
         epochs.append(i)

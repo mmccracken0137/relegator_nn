@@ -82,30 +82,26 @@ X_train.drop('m', axis=1, inplace=True)
 X_test.drop('m', axis=1, inplace=True)
 
 dropout_frac = 0.05
-hidden_nodes = [20, 20, 10]
+learning_rate = 1e-4
+hidden_nodes = [40, 40, 20]
 
 # initialize model...
 clf = None
 rel_loss = None
 n_outs = 0
 
-# n_sig_truth_train, n_bkgd_truth_train = get_ns_truth(y_train)
-# n_sig_pred_train, n_bkgd_pred_train = get_ns_pred(y_train)
-# n_sig_truth_test, n_bkgd_truth_test = get_ns_truth(y_test)
-# n_sig_pred_test, n_bkgd_pred_test = get_ns_pred(y_test)
-
-if model_type == 'regress': #, 'nn_binary', 'relegator']:
-    clf = regressor_model(len(X_train.columns), hidden_nodes, input_dropout=dropout_frac)
+if model_type == 'regress':
+    clf = regressor_model(len(X_train.columns), hidden_nodes,
+                          input_dropout=dropout_frac, learning_rate=learning_rate)
     n_outs = 1
 elif model_type == 'nn_binary':
-    clf = binary_softmax_model(len(X_train.columns), hidden_nodes, input_dropout=dropout_frac)
+    clf = binary_softmax_model(len(X_train.columns), hidden_nodes,
+                               input_dropout=dropout_frac, learning_rate=learning_rate)
     n_outs = 2
 elif model_type == 'relegator':
-    # rel_loss = relegator_loss(n_sig_pred_train, n_bkgd_pred_train, sig_frac)
-    # print(Fore.RED + "y_pred shape", np.shape(y_train))
-    # print(Style.RESET_ALL)
     rel_loss = relegator_loss(sig_frac)
-    clf = relegator_model(len(X_train.columns), hidden_nodes, rel_loss, input_dropout=dropout_frac)
+    clf = relegator_model(len(X_train.columns), hidden_nodes, rel_loss,
+                          input_dropout=dropout_frac, learning_rate=learning_rate)
     n_outs = 3
 else:
     print('error: model type \"' + model_type + '\" not quite ready...')

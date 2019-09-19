@@ -173,13 +173,9 @@ def hist_softmax_cut_ms(df, min, max, nbins, ax):
 
 def signif_function(n_s, n_b):
     if tf.is_tensor(n_s): # for relegator loss
-        # sig = n_s / K.sqrt(n_s + n_b)
         sig = tf.math.divide(n_s, K.sqrt(n_s + n_b))
     else:
         sig = n_s / np.sqrt(n_s + n_b)
-    # print("REL ENN ESS", n_s)
-    # print("REL ENN BEE", n_b)
-    # print("SIGNIF", sig)
     return sig
 
 def signif_error(n_s, n_b):
