@@ -99,7 +99,8 @@ elif model_type == 'nn_binary':
                                input_dropout=dropout_frac, learning_rate=learning_rate)
     n_outs = 2
 elif model_type == 'relegator':
-    rel_loss = relegator_loss(sig_frac)
+    rel_loss = relegator_loss(sig_frac,
+                              reg_min=mean_mass - width_mass, reg_max=mean_mass + width_mass)
     clf = relegator_model(len(X_train.columns), hidden_nodes, rel_loss,
                           input_dropout=dropout_frac, learning_rate=learning_rate)
     n_outs = 3
@@ -229,8 +230,13 @@ plt.tight_layout()
 # # # # # # plot decision boundaries
 fig = plt.figure(figsize=(9,5.5))
 ax = plt.subplot(1,1,1)
-x1_mesh, x2_mesh, class_mesh = predict_bound_class(clf, df, n_outs, opt_df=opt_df)
+x1_mesh, x2_mesh, class_mesh = predict_bound_class(clf, df, n_outs) #, opt_df=opt_df)
+vmin, vmax = 0, 1
+if model_type == 'relegator':
+    vmax = 2
 ax.contourf(x1_mesh, x2_mesh, class_mesh, alpha=0.4)
+# im = ax.contourf(x1_mesh, x2_mesh, class_mesh, alpha=0.4, cmap='PuOr_r', vmin=vmin, vmax=vmax)
+# fig.colorbar(im, ax=ax)
 
 plot_xs(raw_df, ax)
 plt.title('noise = ' + str(noise) + ', angle = ' + str(angle) + ', epochs = ' + str(n_epochs))

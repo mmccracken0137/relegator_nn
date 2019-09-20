@@ -126,21 +126,24 @@ def cce_loss(y_true, y_pred):
     sum = K.categorical_crossentropy(y_true, y_pred)
     return sum
 
-def relegator_loss(sig_frac, sig_idx=1):
+def relegator_loss(sig_frac, sig_idx=1, reg_min=0, reg_max=1):
     def loss(y_truth, y_pred):
         sig_mask = y_truth[:,sig_idx]
         bkgd_mask = y_truth[:,0]
         diff_01 = K.abs(y_pred[:,0] - y_pred[:,sig_idx])
         n_S = K.sum(y_pred[:,sig_idx] * sig_mask) # total prob of truth signal events
         n_B = K.sum(y_pred[:,sig_idx] * bkgd_mask) # total prob of truth bkgd events
-        signif = signif_function(n_S, n_B)
+
+        # TKTKTK Not sure that we really care about probabilities here, just max probability???
+        signif = signif_function(sig_frac * n_S, n_B)
         n_tot = K.sum(y_truth)
         sum = 0
         # sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
         # sum -= sig_frac * signif #/ n_tot # term for significance
 
         sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
-        sum -= sig_frac * signif #/ n_tot # term for significance
+        # sum += 1 / signif #/ n_tot # term for significance
+        sum -= K.log(signif)
         return sum
     return loss
 
