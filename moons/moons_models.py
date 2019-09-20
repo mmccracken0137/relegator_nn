@@ -140,7 +140,7 @@ def relegator_loss(sig_frac, sig_idx=1):
         # sum -= sig_frac * signif #/ n_tot # term for significance
 
         sum += K.categorical_crossentropy(y_truth, y_pred) # cce term for accuracy
-        # sum -= (1 - diff_01) * sig_frac * signif #/ n_tot # term for significance
+        sum -= sig_frac * signif #/ n_tot # term for significance
         return sum
     return loss
 

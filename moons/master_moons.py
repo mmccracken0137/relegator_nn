@@ -213,7 +213,7 @@ if model_type == 'regress':
     opt_df  = dvals[opt_idx]
     ax.plot(dvals, pwr, label='sig fraction = ' + str(sig_frac))
     plt.xlabel('decision function value')
-    plt.ylabel(r'significance, $S / \sqrt{S+B}$')
+    plt.ylabel(r'$s / \sqrt{s+b}$')
     plt.axvline(x=opt_df, color='lightgray', dashes=(1,1))
     plt.legend(loc='lower right')
 

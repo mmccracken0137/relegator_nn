@@ -195,7 +195,7 @@ def hist_diff_signif(x, y_tot, y_bkgd):
     signif = signif_function(diff, y_bkgd)
     errs = signif_error(diff, y_bkgd) #np.sqrt(np.abs(diff)/y_bkgd) # approximate, TKTKTK
     plt.errorbar(x, signif, yerr=errs, fmt='.k')
-    plt.ylabel(r'significance, $s / \sqrt{s+b}$')
+    plt.ylabel(r'$s / \sqrt{s+b}$')
     plt.xlabel(r'$m$')
     return 0
 
