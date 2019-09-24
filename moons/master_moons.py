@@ -26,8 +26,8 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
-from moons_tools import *
-from moons_models import *
+from moons_tools_2 import *
+from moons_models_2 import *
 
 # to use latex with matplotlib
 from matplotlib import rc
@@ -35,7 +35,10 @@ rc('font', **{'family':'serif','serif':['Palatino']})
 rc('text', usetex=True)
 
 model_type = sys.argv[1]
-if model_type not in ['regress', 'nn_binary', 'relegator']:
+allowed_models = ['regress', 'signif_regress',
+                  'nn_binary', 'signif_nn_binary',
+                  'relegator', 'signif_relegator']
+if model_type not in allowed_models:
     print('error: model type \"' + model_type + '\" undefined')
     exit
 
@@ -69,9 +72,9 @@ df = raw_df.copy()
 
 y = df['label']
 y_1hot = pd.concat([df['label_0'], df['label_1']], axis=1, sort=False)
-if model_type == 'relegator':
+if 'relegator' in model_type:
     y_1hot['label_rel'] = 0
-if model_type != 'regress' :
+if 'regress' not in model_type:
     y = y_1hot.copy()
 
 df.drop(['label', 'label_0', 'label_1'], axis=1, inplace=True)
@@ -94,6 +97,11 @@ if model_type == 'regress':
     clf = regressor_model(len(X_train.columns), hidden_nodes,
                           input_dropout=dropout_frac, learning_rate=learning_rate)
     n_outs = 1
+elif model_type == 'signif_regress':
+    mod_loss = regress_signif_loss(sig_frac)
+    clf = signif_regressor_model(len(X_train.columns), hidden_nodes, mod_loss,
+                          input_dropout=dropout_frac, learning_rate=learning_rate)
+    n_outs = 1
 elif model_type == 'nn_binary':
     clf = binary_softmax_model(len(X_train.columns), hidden_nodes,
                                input_dropout=dropout_frac, learning_rate=learning_rate)
@@ -112,15 +120,18 @@ print(clf.summary())
 
 # train model...
 train_results_df = []
-if model_type != 'relegator':
-    train_results_df = train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
-                                   batch_size=100, verbose=1, ot_shutoff=True,
-                                   ot_shutoff_depth=ot_cutoff_depth)
-else:
-    train_results_df = train_relegator(clf, X_train, y_train, X_test, y_test, n_epochs, sig_frac,
-                                       batch_size=512, verbose=1, ot_shutoff=True,
-                                       ot_shutoff_depth=ot_cutoff_depth)
+train_results_df = train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
+                               batch_size=1024, verbose=1, ot_shutoff=True,
+                               ot_shutoff_depth=ot_cutoff_depth)
 
+# if 'relegator' in model_type:
+#     train_results_df = train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
+#                                        batch_size=1024, verbose=1, ot_shutoff=True,
+#                                        ot_shutoff_depth=ot_cutoff_depth)
+# else:
+#     train_results_df = train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
+#                                    batch_size=1024, verbose=1, ot_shutoff=True,
+#                                    ot_shutoff_depth=ot_cutoff_depth)
 
 print('\n... NN trained, plotting...\n')
 
@@ -154,7 +165,7 @@ plt.ylabel('loss')
 plt.xlabel('epoch')
 
 ax = plt.subplot(n_rows, n_cols, 3)
-if model_type == 'regress':
+if 'regress' in model_type:
     y_pred_train = clf.predict(X_train).ravel()
     y_pred_test = clf.predict(X_test).ravel()
 
@@ -197,7 +208,7 @@ else: #elif model_type == 'nn_binary':
                           normalize=True, title='confusion matrix, test')
 
 opt_df = 0.0
-if model_type == 'regress':
+if 'regress' in model_type:
     ax = plt.subplot(n_rows,n_cols, 4)
     test_dict = {'x1':X_test['x1'], 'x2':X_test['x2'], 'm':masses_test, 'y':y_test, 'pred':y_pred_test}
     test_df = pd.DataFrame(test_dict)
@@ -272,7 +283,7 @@ ax = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
 
 raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 0, 0, 0, 0
 cents, occs, bkgds = 0, 0, 0
-if model_type == 'regress':
+if 'regress' in model_type:
     weighted_df['pred'] = clf.predict(xs_weighted).ravel()
     cents, occs, bkgds = hist_cut_ms(weighted_df, opt_df, min_mass, max_mass, nbins, ax)
     raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_regress(weighted_df, opt_df, mean_mass, width_mass, n_sigmas)
@@ -289,7 +300,7 @@ else: # model_type == 'nn_binary':
 plt.xlim((min_mass, max_mass))
 title_str = 'masses pass nn'
 if opt_df > 0:
-    title_str += ', optimal d.f. = ' + str(np.round(opt_df,3))
+    title_str += ', optimal d.f. = %0.3f' % opt_df
 plt.title(title_str)
 plt.legend(loc='upper right')
 
