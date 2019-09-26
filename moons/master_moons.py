@@ -26,8 +26,8 @@ from tensorflow.keras.layers import Dense
 from tensorflow.keras.layers import Dropout
 from tensorflow.keras.wrappers.scikit_learn import KerasClassifier
 
-from moons_tools_2 import *
-from moons_models_2 import *
+from moons_tools import *
+from moons_models import *
 
 # to use latex with matplotlib
 from matplotlib import rc
@@ -38,6 +38,10 @@ model_type = sys.argv[1]
 allowed_models = ['regress', 'signif_regress',
                   'nn_binary', 'signif_nn_binary',
                   'relegator', 'signif_relegator']
+loss_types = {'regress':'bin. CE', 'signif_regress':'mod CE',
+              'nn_binary':'cat. CE', 'signif_nn_binary':'mode cat. CE',
+              'relegator':'cat. CE', 'signif_relegator':'mod cat. CE'}
+loss_type = loss_types[model_type]
 if model_type not in allowed_models:
     print('error: model type \"' + model_type + '\" undefined')
     exit
@@ -85,7 +89,7 @@ X_train.drop('m', axis=1, inplace=True)
 X_test.drop('m', axis=1, inplace=True)
 
 dropout_frac = 0.05
-learning_rate = 1e-4
+learning_rate = 1e-3
 hidden_nodes = [40, 40, 20]
 
 # initialize model...
@@ -159,7 +163,7 @@ plt.plot(train_results_df['eps'], train_results_df['train_loss'], label='train')
 plt.plot(train_results_df['eps'], train_results_df['test_loss'], label='test')
 plt.plot(train_results_df['eps'], train_results_df['test_loss_sma'], label='test sma' + str(ot_cutoff_depth))
 #plt.plot(history.history['val_acc'])
-plt.title('loss (bin. cross-entropy)')
+plt.title('loss (' + loss_type + ')')
 plt.legend(loc='upper right')
 plt.ylabel('loss')
 plt.xlabel('epoch')
@@ -262,7 +266,7 @@ weighted_n_evts = n_evts # 50000
 weighted_df = make_moons_mass(weighted_n_evts, min_mass, max_mass, mean=mean_mass, sigma=width_mass,
                               noise=noise, angle=angle, beta=0.60, sig_fraction=sig_frac)
 y_weighted = weighted_df['label']
-y_weighted_1hot = pd.concat([weighted_df['label_0'], weighted_df['label_1']], axis=1, sort=False)
+# y_weighted_1hot = pd.concat([weighted_df['label_0'], weighted_df['label_1']], axis=1, sort=False)
 xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
 
 # ax = plt.subplot(1,2,1)
