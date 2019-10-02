@@ -71,7 +71,8 @@ min_mass, max_mass = 0.0, 1.0
 mean_mass, width_mass, n_sigmas = 0.5, 0.03, 2.5
 
 # make the data and labels
-raw_df = make_moons_mass(n_evts, min_mass, max_mass, mean=mean_mass, sigma=width_mass, noise=noise, angle=angle, beta=0.60)
+raw_df = make_moons_mass(n_evts, min_mass, max_mass, mean=mean_mass,
+                         sigma=width_mass, noise=noise, angle=angle, beta=0.60)
 df = raw_df.copy()
 
 y = df['label']
@@ -224,7 +225,7 @@ if 'regress' in model_type:
         n_sig.append(len(test_df['m'][test_df.y == 1][test_df.pred >= d][np.abs(df.m - mean_mass) < n_sigmas*width_mass]))
         n_bkgd.append(len(test_df['m'][test_df.y == 0][test_df.pred >= d][np.abs(df.m - mean_mass) < n_sigmas*width_mass]))
         pwr.append(n_sig[-1]*sig_frac / np.sqrt(n_sig[-1]*sig_frac + n_bkgd[-1]*(1-sig_frac)))
-    opt_pwr = np.max(pwr)
+    opt_pwr = np.nanmax(pwr)
     opt_idx = pwr.index(opt_pwr)
     opt_df  = dvals[opt_idx]
     ax.plot(dvals, pwr, label='sig fraction = ' + str(sig_frac))

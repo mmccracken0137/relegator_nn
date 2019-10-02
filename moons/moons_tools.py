@@ -74,7 +74,7 @@ def make_moons_mass(nevts, min, max, mean, sigma, noise=0.0, angle=0.0, beta=1.0
         dfr = pd.DataFrame(dic)
         df['x1'] = dfr['x1_rot']
         df['x2'] = dfr['x2_rot']
-
+        
     return df
 
 def plot_xs(df, ax):

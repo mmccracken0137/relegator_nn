@@ -114,6 +114,11 @@ def train_model(clf, X_train, y_train, X_test, y_test, n_epochs,
     test_acc_sma = []
     test_loss_sma = []
 
+    X_train = X_train.to_numpy()
+    y_train = y_train.to_numpy()
+    X_test  = X_test.to_numpy()
+    y_test  = y_test.to_numpy()
+
     for i in range(n_epochs):
         # print('LOSS TEST', K.eval(regress_signif_loss(0.01, reg_min=0, reg_max=1)))
         print('\nEPOCH ' + str(i) + '/' + str(n_epochs), ', learning rate: ' + str(K.eval(clf.optimizer.lr)))
