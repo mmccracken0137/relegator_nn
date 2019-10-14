@@ -286,6 +286,8 @@ plt.xlim((min_mass, max_mass))
 # ax = plt.subplot(1,2,2)
 ax = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
 
+xs_weighted = xs_weighted.to_numpy()
+
 raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 0, 0, 0, 0
 cents, occs, bkgds = 0, 0, 0
 if 'regress' in model_type:
