@@ -130,7 +130,7 @@ def f_expbkgd(x, b, lam):
     return f
 
 def fit_mass_hist(x, y):
-    p_vals=[10, 0.5, 0.02, y[0]/2, 1.0]
+    p_vals=[10, 0.5, 0.02, y[0], 1.0]
     popt, pcov = curve_fit(f_gauss_expbkgd, x, y, p0=p_vals)
     return popt
 
