@@ -408,6 +408,7 @@ if 'write_results' in sys.argv:
                    'eval_loss',
                    'train_loss',
                    'test_loss',
+                   'weighted_n_events',
                    'n_raw_bkgd', 'n_raw_sig',
                    'n_pass_bkgd', 'n_pass_sig',
                    'raw_signif',
@@ -416,13 +417,14 @@ if 'write_results' in sys.argv:
         f.write(line)
 
     out_arr = [model_type, str(noise), str(angle), str(sig_frac), str(n_epochs), str(train_time),
-               '%0.4f' % train_results_df['eps'].iloc[-1],
+               str(train_results_df['eps'].iloc[-1]),
                '%0.4f' % train_results_df['eval_accs'].iloc[-1],
                '%0.4f' % train_results_df['train_accs'].iloc[-1],
                '%0.4f' % train_results_df['test_accs'].iloc[-1],
                '%0.4f' % train_results_df['eval_loss'].iloc[-1],
                '%0.4f' % train_results_df['train_loss'].iloc[-1],
                '%0.4f' % train_results_df['test_loss'].iloc[-1],
+               str(weighted_n_evts),
                str(n_raw_bkgd), str(n_raw_sig),
                str(n_pass_bkgd), str(n_pass_sig),
                '%0.3f' % raw_signif,
