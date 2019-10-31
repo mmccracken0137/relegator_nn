@@ -1,0 +1,32 @@
+{
+  "data": {
+    "n_events": 20000,
+    "noise": 0.2,
+    "angle": 1.4,
+    "sig_fraction": 0.01,
+    "test_fraction": 0.25,
+    "min_mass": 0.0,
+    "max_mass": 1.0,
+    "mean_mass": 0.5,
+    "width_mass": 0.03,
+    "n_sigmas": 2.5,
+    "bkgd_beta": 0.6,
+    "ttsplit_random_state": 42,
+    "weighted_n_events": 20000,
+    "train_data_file": "./datasets/train_ds.pkl",
+    "weighted_data_file": "./datasets/weighted_ds.pkl"
+  },
+  "model": {
+    "model_type": "relegator",
+    "input_dropout": 0.05,
+    "learning_rate": 0.0005,
+    "hidden_nodes": [40, 40, 20],
+    "bias": true,
+    "signif_type": "proba"
+  },
+  "run": {
+    "n_epochs": 1000,
+    "ot_cutoff": true,
+    "ot_cutoff_depth": 20
+  }
+}
