@@ -15,7 +15,7 @@ sig_pows = np.linspace(pow_range[0], pow_range[1], n_sigs + 1)
 
 n_trials = 10
 n_train_events = 20000
-n_weighted_events = 20000
+n_weighted_events = 100000
 
 for sp in sig_pows:
     sig_frac = np.round(10**sp, 4)
@@ -66,9 +66,10 @@ for sp in sig_pows:
         # print(json_str)
         with open("config_run.json", "w") as f:
             f.write(json_str)
-        cmd = "python make_datasets_2.py config_run.json"
-        print(t, sig_frac)
-        print(cmd)
+        if t == ts[0]:
+            cmd = "python make_datasets_2.py config_run.json"
+            print(t, sig_frac)
+            print(cmd)
         #os.system(cmd)
         for j in range(n_trials):
             cmd = "python master_moons_2.py config_run.json write_results noplot"
