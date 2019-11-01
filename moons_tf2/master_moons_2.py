@@ -400,7 +400,8 @@ if 'write_results' in sys.argv:
     print('\nwriting results to file ' + './fit_results/fit_results.txt')
     f = open('./fit_results/fit_results.txt', 'a+')
     if write_header:
-        out_arr = ["model_type", "noise", "angle", "sig_frac", "n_epochs", "train_time",
+        out_arr = ["model_type", "noise", "angle", "sig_frac", "n_epochs",
+                   "train_time",
                    'epochs',
                    'eval_acc',
                    'train_acc',
@@ -416,7 +417,8 @@ if 'write_results' in sys.argv:
         line = ','.join(out_arr) + '\n'
         f.write(line)
 
-    out_arr = [model_type, str(noise), str(angle), str(sig_frac), str(n_epochs), str(train_time),
+    out_arr = [model_type, '\t\t' + str(noise), str(angle), str(sig_frac), str(n_epochs),
+               '%0.4f' % train_time,
                str(train_results_df['eps'].iloc[-1]),
                '%0.4f' % train_results_df['eval_accs'].iloc[-1],
                '%0.4f' % train_results_df['train_accs'].iloc[-1],

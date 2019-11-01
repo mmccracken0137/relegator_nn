@@ -68,8 +68,9 @@ for sp in sig_pows:
             f.write(json_str)
         cmd = "python make_datasets_2.py config_run.json"
         print(t, sig_frac)
-        os.system(cmd)
+        print(cmd)
+        #os.system(cmd)
         for j in range(n_trials):
             cmd = "python master_moons_2.py config_run.json write_results noplot"
             print(cmd)
-            os.system(cmd)
+            #os.system(cmd)
