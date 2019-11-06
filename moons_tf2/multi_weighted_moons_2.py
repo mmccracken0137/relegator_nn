@@ -318,122 +318,119 @@ plt.tight_layout()
 # plot mass histograms after optimal cut
 print('\napplying optimal cut to dataset with sig_frac = ' + str(sig_frac) + '...')
 
-weighted_n_evts, weighted_df = 0, None
-if 'gen_data' in sys.argv:
-    print('generating weighted dataset...')
-    weighted_n_evts = config_pars['data']['weighted_n_events'] # 50000
-    weighted_df = make_moons_mass(weighted_n_evts, min_mass, max_mass,
-                                  mean=mean_mass, sigma=width_mass, noise=noise,
-                                  angle=angle, beta=bkgd_beta, sig_fraction=sig_frac)
-else:
-    print('unpickling weighted dataset from ' + config_pars['data']['weighted_data_file'])
-    with open(config_pars['data']['weighted_data_file'], 'rb') as f:
-        weighted_df = pickle.load(f)
-        weighted_n_evts = len(weighted_df.index)
+n_weighted_datasets = config_pars['data']['n_weighted_datasets'] # 2.5
+for n_ds in range(n_weighted_datasets):
+    weighted_n_evts, weighted_df = 0, None
+    if 'gen_data' in sys.argv:
+        print('generating weighted dataset...')
+        weighted_n_evts = config_pars['data']['weighted_n_events'] # 50000
+        weighted_df = make_moons_mass(weighted_n_evts, min_mass, max_mass,
+                                      mean=mean_mass, sigma=width_mass, noise=noise,
+                                      angle=angle, beta=bkgd_beta, sig_fraction=sig_frac)
+    else:
+        print('unpickling weighted dataset from ' + config_pars['data']['weighted_data_file'])
+        with open(config_pars['data']['weighted_data_file'], 'rb') as f:
+            weighted_df = pickle.load(f)
+            weighted_n_evts = len(weighted_df.index)
 
-y_weighted = weighted_df['label']
-xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
+    y_weighted = weighted_df['label']
+    xs_weighted = weighted_df.drop(['label', 'label_0', 'label_1', 'm'], axis=1)
 
-fig = plt.figure(figsize=(11,6))
-ax = plt.subplot2grid((3, 2), (0, 0), rowspan=2)
-cents, occs, bkgds = hist_ms(weighted_df, min_mass, max_mass, nbins, ax,
-                             sig_limits=(mean_mass - n_sigmas*width_mass, mean_mass + n_sigmas*width_mass))
-plt.xlim((min_mass, max_mass))
-plt.title('masses, sig\_frac = ' + str(sig_frac))
-plt.legend(loc='upper right')
+    # fig = plt.figure(figsize=(11,6))
+    # ax = plt.subplot2grid((3, 2), (0, 0), rowspan=2)
+    cents, occs, bkgds = hist_ms(weighted_df, min_mass, max_mass, nbins, ax,
+                                 sig_limits=(mean_mass - n_sigmas*width_mass,
+                                             mean_mass + n_sigmas*width_mass))
+    # plt.xlim((min_mass, max_mass))
+    # plt.title('masses, sig\_frac = ' + str(sig_frac))
+    # plt.legend(loc='upper right')
+    #
+    # ax = plt.subplot2grid((3, 2), (2, 0))
+    # ax.yaxis.grid(True)
+    # hist_residuals(cents, occs, bkgds,
+    #                sig_limits=(mean_mass - n_sigmas*width_mass,
+    #                            mean_mass + n_sigmas*width_mass))
+    # plt.xlim((min_mass, max_mass))
 
-ax = plt.subplot2grid((3, 2), (2, 0))
-ax.yaxis.grid(True)
-# hist_diff_signif(cents, occs, bkgds)
-# plt.ylim((-10, 10))
-hist_residuals(cents, occs, bkgds,
-               sig_limits=(mean_mass - n_sigmas*width_mass, mean_mass + n_sigmas*width_mass))
-plt.xlim((min_mass, max_mass))
+    # ax = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
+    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 0, 0, 0, 0
+    cents, occs, bkgds = 0, 0, 0
+    if 'regress' in model_type:
+        weighted_df['pred'] = model_clf.model.predict(xs_weighted).ravel()
+        # cents, occs, bkgds = hist_cut_ms(weighted_df, opt_thr, min_mass, max_mass, nbins, ax,
+        #                                  sig_limits=(mean_mass - n_sigmas*width_mass,
+        #                                              mean_mass + n_sigmas*width_mass))
+        raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig =        compute_signif_regress(weighted_df, opt_thr, mean_mass, width_mass, n_sigmas)
 
-ax = plt.subplot2grid((3, 2), (0, 1), rowspan=2)
-raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = 0, 0, 0, 0, 0, 0
-cents, occs, bkgds = 0, 0, 0
-if 'regress' in model_type:
-    weighted_df['pred'] = model_clf.model.predict(xs_weighted).ravel()
-    cents, occs, bkgds = hist_cut_ms(weighted_df, opt_thr, min_mass, max_mass, nbins, ax,
-                                     sig_limits=(mean_mass - n_sigmas*width_mass,
-                                                 mean_mass + n_sigmas*width_mass))
-    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_regress(weighted_df, opt_thr, mean_mass, width_mass, n_sigmas)
+    else: # model_type == 'nn_binary':
+        weighted_df['prob_0'] = model_clf.model.predict(xs_weighted)[:,0]
+        weighted_df['prob_1'] = model_clf.model.predict(xs_weighted)[:,1]
+        if model_type == 'relegator':
+            weighted_df['prob_rel'] = model_clf.model.predict(xs_weighted)[:,1]
 
-else: # model_type == 'nn_binary':
-    weighted_df['prob_0'] = model_clf.model.predict(xs_weighted)[:,0]
-    weighted_df['prob_1'] = model_clf.model.predict(xs_weighted)[:,1]
-    if model_type == 'relegator':
-        weighted_df['prob_rel'] = model_clf.model.predict(xs_weighted)[:,1]
+        # cents, occs, bkgds = hist_softmax_cut_ms(weighted_df, min_mass, max_mass, nbins, ax,
+        #                                          sig_limits=(mean_mass - n_sigmas*width_mass,
+        #                                                      mean_mass + n_sigmas*width_mass))
+        raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean_mass, width_mass, n_sigmas)
 
-    cents, occs, bkgds = hist_softmax_cut_ms(weighted_df, min_mass, max_mass, nbins, ax,
-                                             sig_limits=(mean_mass - n_sigmas*width_mass,
-                                                         mean_mass + n_sigmas*width_mass))
-    raw_signif, pass_signif, n_raw_bkgd, n_raw_sig, n_pass_bkgd, n_pass_sig = compute_signif_binary(weighted_df, mean_mass, width_mass, n_sigmas)
+    # plt.xlim((min_mass, max_mass))
+    # title_str = 'post-cut masses'
+    # if opt_thr > 0:
+    #     title_str += ', opt. threshold = %0.3f' % opt_thr
+    # plt.title(title_str)
+    # plt.legend(loc='upper right')
+    #
+    # ax = plt.subplot2grid((3, 2), (2, 1))
+    # ax.yaxis.grid(True)
+    # hist_residuals(cents, occs, bkgds,
+    #                sig_limits=(mean_mass - n_sigmas*width_mass, mean_mass + n_sigmas*width_mass))
+    # plt.xlim((min_mass, max_mass))
 
-plt.xlim((min_mass, max_mass))
-title_str = 'post-cut masses'
-if opt_thr > 0:
-    title_str += ', opt. threshold = %0.3f' % opt_thr
-plt.title(title_str)
-plt.legend(loc='upper right')
+    plt.tight_layout()
 
-ax = plt.subplot2grid((3, 2), (2, 1))
-ax.yaxis.grid(True)
-# hist_diff_signif(cents, occs, bkgds)
-# plt.ylim((-10, 10))
-hist_residuals(cents, occs, bkgds,
-               sig_limits=(mean_mass - n_sigmas*width_mass, mean_mass + n_sigmas*width_mass))
-plt.xlim((min_mass, max_mass))
+    print('\nraw analysis significance:\t', str(raw_signif))
+    print('pass analysis significance:\t', str(pass_signif))
 
-plt.tight_layout()
+    if 'write_results' in sys.argv:
+        # check if results file exists...
+        write_header = not os.path.exists('./fit_results/weightiter_fit_results.txt')
+        print('\nwriting results to file ' + './fit_results/weightiter_fit_results.txt')
+        f = open('./fit_results/weightiter_fit_results.txt', 'a+')
+        if write_header:
+            out_arr = ["model_type", "\tnoise", "angle", "sig_frac", "n_epochs",
+                       "train_time",
+                       'epochs',
+                       'eval_acc',
+                       'train_acc',
+                       'test_acc',
+                       'eval_loss',
+                       'train_loss',
+                       'test_loss',
+                       'weighted_n_events',
+                       'n_raw_bkgd', 'n_raw_sig',
+                       'n_pass_bkgd', 'n_pass_sig',
+                       'raw_signif',
+                       'pass_signif']
+            line = ','.join(out_arr) + '\n'
+            f.write(line)
 
-print('\nraw analysis significance:\t', str(raw_signif))
-print('pass analysis significance:\t', str(pass_signif))
-
-if 'write_results' in sys.argv:
-    # print('\nwriting results to file ' + './fit_results/' + model_type + '_results.txt')
-    # f = open('./fit_results/' + model_type + '_results.txt', 'a+')
-
-    # check if results file exists...
-    write_header = not os.path.exists('./fit_results/fit_results.txt')
-    print('\nwriting results to file ' + './fit_results/fit_results.txt')
-    f = open('./fit_results/fit_results.txt', 'a+')
-    if write_header:
-        out_arr = ["model_type", "\tnoise", "angle", "sig_frac", "n_epochs",
-                   "train_time",
-                   'epochs',
-                   'eval_acc',
-                   'train_acc',
-                   'test_acc',
-                   'eval_loss',
-                   'train_loss',
-                   'test_loss',
-                   'weighted_n_events',
-                   'n_raw_bkgd', 'n_raw_sig',
-                   'n_pass_bkgd', 'n_pass_sig',
-                   'raw_signif',
-                   'pass_signif']
+        out_arr = [model_type, '\t' + str(noise), str(angle), str(sig_frac), str(n_epochs),
+                   '%0.4f' % train_time,
+                   str(train_results_df['eps'].iloc[-1]),
+                   '%0.4f' % train_results_df['eval_accs'].iloc[-1],
+                   '%0.4f' % train_results_df['train_accs'].iloc[-1],
+                   '%0.4f' % train_results_df['test_accs'].iloc[-1],
+                   '%0.4f' % train_results_df['eval_loss'].iloc[-1],
+                   '%0.4f' % train_results_df['train_loss'].iloc[-1],
+                   '%0.4f' % train_results_df['test_loss'].iloc[-1],
+                   str(weighted_n_evts),
+                   str(n_raw_bkgd), str(n_raw_sig),
+                   str(n_pass_bkgd), str(n_pass_sig),
+                   '%0.3f' % raw_signif,
+                   '%0.3f' % pass_signif]
         line = ','.join(out_arr) + '\n'
         f.write(line)
+        f.close()
 
-    out_arr = [model_type, '\t' + str(noise), str(angle), str(sig_frac), str(n_epochs),
-               '%0.4f' % train_time,
-               str(train_results_df['eps'].iloc[-1]),
-               '%0.4f' % train_results_df['eval_accs'].iloc[-1],
-               '%0.4f' % train_results_df['train_accs'].iloc[-1],
-               '%0.4f' % train_results_df['test_accs'].iloc[-1],
-               '%0.4f' % train_results_df['eval_loss'].iloc[-1],
-               '%0.4f' % train_results_df['train_loss'].iloc[-1],
-               '%0.4f' % train_results_df['test_loss'].iloc[-1],
-               str(weighted_n_evts),
-               str(n_raw_bkgd), str(n_raw_sig),
-               str(n_pass_bkgd), str(n_pass_sig),
-               '%0.3f' % raw_signif,
-               '%0.3f' % pass_signif]
-    line = ','.join(out_arr) + '\n'
-    f.write(line)
-    f.close()
-
-if 'noplot' not in sys.argv:
-    plt.show()
+    if 'noplot' not in sys.argv:
+        plt.show()
