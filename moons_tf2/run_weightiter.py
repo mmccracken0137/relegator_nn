@@ -45,7 +45,7 @@ for sp in sig_pows:
         \"weighted_n_events\": " + str(n_weighted_events) + ", \n \
         \"train_data_file\": \"" + train_file_name + "\", \n \
         \"weighted_data_file\": \"" + weight_file_name + "\", \n \
-        \"n_weighted_datasets\": \"" + str(n_weight_iters) + "\" \n \
+        \"n_weighted_datasets\": " + str(n_weight_iters) + " \n \
         }, \n \
         \"model\": { \n \
         \"model_type\": \""
