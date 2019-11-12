@@ -8,7 +8,8 @@ import json
 import numpy as np
 import sys
 
-ts = ['regress', 'binary_softmax', 'relegator'] #, 'mod_binary']
+#ts = ['regress', 'binary_softmax', 'relegator'] #, 'mod_binary']
+ts = ['relegator_factor'] #, 'mod_binary']
 n_sigs = 8
 pow_range = (-3,-1)
 sig_pows = np.linspace(pow_range[0], pow_range[1], n_sigs + 1)
@@ -70,7 +71,7 @@ for sp in sig_pows:
             cmd = "python make_datasets_2.py config_run.json"
             print(t, sig_frac)
             print(cmd)
-        #os.system(cmd)
+            #os.system(cmd)
         for j in range(n_trials):
             cmd = "python master_moons_2.py config_run.json write_results noplot"
             print(cmd)

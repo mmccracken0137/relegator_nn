@@ -47,7 +47,7 @@ with open(sys.argv[1], 'r') as f:
 
 model_type = config_pars['model']['model_type'] # sys.argv[1]
 allowed_models = ['regress', 'binary_softmax', 'relegator',
-                  'mod_binary']
+                  'mod_binary', 'relegator_factor']
 if model_type not in allowed_models:
     print('error: model type \"' + model_type + '\" undefined')
     sys.exit()
@@ -142,8 +142,11 @@ elif model_type == 'mod_binary':
     model_clf.set_signal_idx(1)
     model_clf.set_background_idxs([0])
     n_ouputs = 2
-elif model_type == 'relegator':
-    model_clf = RelegatorClf()
+elif 'relegator' in model_type:
+    if model_type == 'relegator':
+        model_clf = RelegatorClf()
+    elif model_type == 'relegator_factor':
+        model_clf = RelegatorFactorClf()
     model_clf.set_train_masses(masses_train, mean_mass, n_sigmas * width_mass)
     model_clf.set_test_masses(masses_test)
     model_clf.set_test_fraction(test_fraction)
