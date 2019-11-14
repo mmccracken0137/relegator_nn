@@ -25,6 +25,7 @@ fig = plt.figure(figsize=(7,5))
 regress = df[df['model_type'] == 'regress']
 binary_softmax = df[df['model_type'] == 'binary_softmax']
 relegator = df[df['model_type'] == 'relegator']
+relegator_factor = df[df['model_type'] == 'relegator_factor']
 
 # print(regress.head(10))
 ax = plt.subplot(1,1,1)
@@ -35,6 +36,8 @@ plt.plot(binary_softmax['sig_frac'],
          binary_softmax['pass_signif'], 'v', label='binary softmax', mfc='none', markersize=ms)
 plt.plot(relegator['sig_frac']*1.08,
          relegator['pass_signif'], 'p', label='relegator', mfc='none', markersize=ms)
+plt.plot(relegator_factor['sig_frac']*1.16,
+         relegator_factor['pass_signif'], 's', label='rel.~factor', mfc='none', markersize=ms)
 plt.legend(loc='lower right')
 
 ax.set_xlabel('signal fraction')

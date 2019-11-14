@@ -18,7 +18,7 @@
     "n_weighted_datasets": 25
   },
   "model": {
-    "model_type": "relegator",
+    "model_type": "relegator_factor",
     "input_dropout": 0.05,
     "learning_rate": 0.0005,
     "hidden_nodes": [40, 40, 20],

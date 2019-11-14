@@ -25,7 +25,6 @@ from sklearn.utils.multiclass import unique_labels
 import tensorflow as tf
 
 from moons_tools_2 import *
-# from moons_models_2 import *
 from classifier_classes import *
 
 # check if tf2.0 eager exec is working
