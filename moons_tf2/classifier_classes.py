@@ -436,3 +436,41 @@ class RelegatorFactorClf(RelegatorClf):
 
         rel_ent = self.relegator_cce(y_truth, y_pred)
         return tf.math.divide(rel_ent, signif)
+
+class RelegatorDiffClf(RelegatorClf):
+    def __init__(self):
+        self.optimizer = None
+        self.layers = None
+        self.model = None
+
+        self.learning_rate = None
+        self.hidden_layers_nodes = None
+        self.bias = None
+        self.n_inputs = None
+
+        self.output_activation = 'softmax'
+        self.name = 'relegation classifier'
+        self.loss_type = 'rel. entropy + 1/sigma'
+
+        self.acc_object = tf.keras.metrics.CategoricalAccuracy()
+
+    def loss_object(self, y_truth, y_pred, train=True):
+        signif = 0
+        if train:
+            if self.signif_type == 'proba':
+                signif = self.signif_proba(y_truth, y_pred, self.train_masses,
+                                           self.train_peak_mask, data_frac=1-self.test_fraction)
+            elif self.signif_type == 'categ':
+                signif = self.signif_categ(y_truth, y_pred, self.train_masses,
+                                           self.train_peak_mask, data_frac=1-self.test_fraction)
+
+        else:
+            if self.signif_type == 'proba':
+                signif = self.signif_proba(y_truth, y_pred, self.test_masses,
+                                           self.test_peak_mask, data_frac=self.test_fraction)
+            elif self.signif_type == 'categ':
+                signif = self.signif_categ(y_truth, y_pred, self.test_masses,
+                                           self.test_peak_mask, data_frac=self.test_fraction)
+
+        rel_ent = self.relegator_cce(y_truth, y_pred)
+        return rel_ent - signif

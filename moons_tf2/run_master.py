@@ -8,7 +8,8 @@ import json
 import numpy as np
 import sys
 
-ts = ['regress', 'binary_softmax', 'relegator'] #, 'mod_binary']
+ts = ['regress', 'binary_softmax', 'relegator', 'relegator_factor', 'relegator_diff']
+#, 'mod_binary']
 # ts = ['relegator_factor'] #, 'mod_binary']
 n_sigs = 8
 pow_range = (-3,-1)
