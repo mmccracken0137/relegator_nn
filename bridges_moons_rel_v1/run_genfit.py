@@ -60,9 +60,9 @@ for dno in range(n_datasets):
     \"min_mass\": 0.0, \n \
     \"max_mass\": 1.0, \n \
     \"mean_mass\": 0.5, \n \
-    \"width_mass\": 0.03, \n \
+    \"width_mass\": 0.2, \n \
     \"n_sigmas\": 2.5, \n \
-    \"bkgd_beta\": 0.6, \n \
+    \"bkgd_beta\": 1.0, \n \
     \"ttsplit_random_state\": 42, \n \
     \"weighted_n_events\": " + str(n_weighted_events) + ", \n \
     \"train_data_file\": \"" + train_file_name + "\", \n \

@@ -45,8 +45,14 @@ train_bkgd = train_df[train_df['truth_class'] == 0]
 train_sig = train_df[train_df['truth_class'] == 1]
 # print(train_df.head(10))
 
+fig = plt.figure(figsize=(9,6))
 plt.scatter(train_sig['x1'], train_sig['x2'], s=1, marker='.')
 plt.scatter(train_bkgd['x1'], train_bkgd['x2'], s=1, marker='.')
+
+fig = plt.figure(figsize=(9,6))
+plt.hist(train_bkgd['mass'], range=(0,1))
+plt.hist(train_sig['mass'], range=(0,1))
+
 plt.show()
 
 # truth class information

@@ -106,16 +106,19 @@ def plot_xs(xs, labels, ax):
     return
 
 def hist_xs(df, tag, nbins, ax):
-    ax.hist(df[tag][df.truth_class==0], bins=nbins, histtype=u'step', label='background')
-    ax.hist(df[tag][df.truth_class==1], bins=nbins, histtype=u'step', label='signal')
+    ax.hist(df[df.truth_class==0][tag], bins=nbins, histtype=u'step', label='background')
+    ax.hist(df[df.truth_class==1][tag], bins=nbins, histtype=u'step', label='signal')
     plt.xlabel(tag)
     ax.legend(loc='upper right')
     return
 
 def hist_fom(df, fom_name, min, max, nbins, ax, sig_limits=None):
-    ax.hist(df[fom_name][df.truth_class==0], range=(min, max),
+    print(min, max)
+    print("TESTHERE", df.shape)
+    print(df[df.truth_class==0][fom_name].shape)
+    ax.hist(df[df.truth_class==0][fom_name], range=(min, max),
             bins=nbins, histtype=u'step', label='background')
-    ax.hist(df[fom_name][df.truth_class==1], range=(min, max),
+    ax.hist(df[df.truth_class==1][fom_name], range=(min, max),
             bins=nbins, histtype=u'step', label='signal')
     occs, edges, _ = ax.hist(df[fom_name], range=(min, max),
                              bins=nbins, histtype=u'step', label='all events')
