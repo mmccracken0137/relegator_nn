@@ -1,4 +1,4 @@
-#!/usr/bon/env python
+#!/usr/bin/env python
 '''
 checking the moons dataset...
 '''

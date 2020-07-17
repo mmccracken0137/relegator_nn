@@ -1,4 +1,4 @@
-#!/usr/bon/env python
+#!/usr/bin/env python
 '''
 Tools for moons classifiers...
 '''
@@ -113,9 +113,6 @@ def hist_xs(df, tag, nbins, ax):
     return
 
 def hist_fom(df, fom_name, min, max, nbins, ax, sig_limits=None):
-    print(min, max)
-    print("TESTHERE", df.shape)
-    print(df[df.truth_class==0][fom_name].shape)
     ax.hist(df[df.truth_class==0][fom_name], range=(min, max),
             bins=nbins, histtype=u'step', label='background')
     ax.hist(df[df.truth_class==1][fom_name], range=(min, max),

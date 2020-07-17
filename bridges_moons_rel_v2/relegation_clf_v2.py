@@ -187,7 +187,8 @@ class ModClf:
         peak_mask[peak_idxs] = 1
         return peak_mask
 
-    def signif_proba(self, y_truth, y_pred, masses=[], peak_mask=[], data_frac=1.0):
+    def signif_proba(self, y_truth, y_pred, masses=[], peak_mask=[],
+                     sf=1.0, scale_factor=1): #sig_data_frac=1.0, bkgd_data_frac=1.0):
         sig_mask  = tf.cast(tf.slice(y_truth, [0, self.signal_idx,], [len(y_truth), 1]), tf.float32)
         bkgd_mask = tf.cast(tf.slice(y_truth, [0, self.background_idxs[0],], [len(y_truth), 1]), tf.float32)
         sig_probs = tf.slice(y_pred, [0, self.signal_idx,], [len(y_truth), 1])
@@ -196,42 +197,38 @@ class ModClf:
         sig_as_sig_probs = tf.reshape(tf.math.multiply(sig_probs, sig_mask), (len(y_truth),))
         bkgd_as_sig_probs = tf.reshape(tf.math.multiply(sig_probs, bkgd_mask), (len(y_truth),))
 
-        data_frac = tf.constant(data_frac)
-        n_S = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(sig_as_sig_probs, peak_mask), axis=0)
-        n_B = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(bkgd_as_sig_probs, peak_mask), axis=0)
+        # data_frac = tf.constant(data_frac)
+        n_S = sf * scale_factor * tf.math.reduce_sum(tf.math.multiply(sig_as_sig_probs, peak_mask), axis=0)
+        n_B = (1-sf) * scale_factor * tf.math.reduce_sum(tf.math.multiply(bkgd_as_sig_probs, peak_mask), axis=0)
 
-        signif = self.signif_function(n_S, n_B, tf.constant(self.signal_fraction))
+        signif = self.signif_function(n_S, n_B) #, tf.constant(self.signal_fraction))
         return signif
 
-    def signif_categ(self, y_truth, y_pred, masses=[], peak_mask=[], data_frac=1.0):
-        sig_mask  = tf.cast(tf.slice(y_truth, [0, self.signal_idx,], [len(y_truth), 1]), tf.float32)
-        bkgd_mask = tf.cast(tf.slice(y_truth, [0, self.background_idxs[0],], [len(y_truth), 1]), tf.float32)
-
-        categories = tf.reshape(tf.cast(tf.math.argmax(y_pred, axis=1), tf.float32), (len(y_truth), 1))
-
-        sig_pred_cats = tf.reshape(tf.math.multiply(categories, sig_mask), (len(y_truth),))
-        bkgd_pred_cats = tf.reshape(tf.math.multiply(categories, bkgd_mask), (len(y_truth),))
-
-        data_frac = tf.constant(data_frac)
-        n_S = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(sig_pred_cats, peak_mask), axis=0)
-        n_B = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(bkgd_pred_cats, peak_mask), axis=0)
-
-        signif = self.signif_function(n_S, n_B, tf.constant(self.signal_fraction))
-        return signif
+    # def signif_categ(self, y_truth, y_pred, masses=[], peak_mask=[], data_frac=1.0):
+    #     sig_mask  = tf.cast(tf.slice(y_truth, [0, self.signal_idx,], [len(y_truth), 1]), tf.float32)
+    #     bkgd_mask = tf.cast(tf.slice(y_truth, [0, self.background_idxs[0],], [len(y_truth), 1]), tf.float32)
+    #
+    #     categories = tf.reshape(tf.cast(tf.math.argmax(y_pred, axis=1), tf.float32), (len(y_truth), 1))
+    #
+    #     sig_pred_cats = tf.reshape(tf.math.multiply(categories, sig_mask), (len(y_truth),))
+    #     bkgd_pred_cats = tf.reshape(tf.math.multiply(categories, bkgd_mask), (len(y_truth),))
+    #
+    #     data_frac = tf.constant(data_frac)
+    #     n_S = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(sig_pred_cats, peak_mask), axis=0)
+    #     n_B = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(bkgd_pred_cats, peak_mask), axis=0)
+    #
+    #     signif = self.signif_function(n_S, n_B, tf.constant(self.signal_fraction))
+    #     return signif
 
     # def signif_function(self, n_S, n_B, sig_frac):
     #     signif = tf.math.divide(n_S * sig_frac, tf.math.sqrt(n_S * sig_frac + n_B * (1 - sig_frac)))
     #     return signif
 
     # modified significance function v2
-    def signif_function(self, n_S, n_B, sig_frac):
+    def signif_function(self, n_S, n_B): # , sig_frac):
         # n_train = 1, n_eval = 1, n_weighted = 1):
         # TKTKTK need to differentiate for train and predict steps...
-        corr_fac = tf.math.divide(self.weighted_n_events,
-                                  0.5 * self.train_n_events * 0.5 * self.valid_n_events)
-        signif = tf.math.divide(n_S * sig_frac * corr_fac,
-                                tf.math.sqrt(n_S * sig_frac * corr_fac +
-                                             n_B * (1 - sig_frac) * corr_fac))
+        signif = tf.math.divide(n_S, tf.math.sqrt(n_S + n_B))
         return signif
 
 class RegressorClf(ModClf):
@@ -300,18 +297,22 @@ class ModBinarySoftmaxClf(ModClf):
         if train:
             if self.signif_type == 'proba':
                 signif = self.signif_proba(y_truth, y_pred, self.train_masses,
-                                           self.train_peak_mask, data_frac=1-self.validation_fraction)
-            elif self.signif_type == 'categ':
-                signif = self.signif_categ(y_truth, y_pred, self.train_masses,
-                                           self.train_peak_mask, data_frac=1-self.validation_fraction)
+                                           self.train_peak_mask,
+                                           sf=self.signal_fraction,
+                                           scale_factor=self.weighted_n_events/(self.train_n_events * 0.5))
+            # elif self.signif_type == 'categ':
+            #     signif = self.signif_categ(y_truth, y_pred, self.train_masses,
+            #                                self.train_peak_mask, data_frac=1-self.validation_fraction)
 
         else:
             if self.signif_type == 'proba':
                 signif = self.signif_proba(y_truth, y_pred, self.test_masses,
-                                           self.validation_peak_mask, data_frac=self.validation_fraction)
-            elif self.signif_type == 'categ':
-                signif = self.signif_categ(y_truth, y_pred, self.test_masses,
-                                           self.validation_peak_mask, data_frac=self.validation_fraction)
+                                           self.validation_peak_mask,
+                                           sf=self.signal_fraction,
+                                           scale_factor=self.weighted_n_events/(self.valid_n_events * 0.5))
+            # elif self.signif_type == 'categ':
+            #     signif = self.signif_categ(y_truth, y_pred, self.test_masses,
+            #                                self.validation_peak_mask, data_frac=self.validation_fraction)
 
         signif_term = 0.0
         if self.signif_type != 'none':
@@ -327,17 +328,21 @@ class ModBinarySoftmaxClf(ModClf):
         if train:
             if self.signif_type == 'proba':
                 signif_val = self.signif_proba(y_t, y_p, self.train_masses,
-                                               self.train_peak_mask, data_frac=1-self.validation_fraction)
-            elif self.signif_type == 'categ':
-                signif_val = self.signif_categ(y_t, y_p, self.train_masses,
-                                               self.train_peak_mask, data_frac=1-self.validation_fraction)
+                                               self.train_peak_mask,
+                                               sf=self.signal_fraction,
+                                               scale_factor=self.weighted_n_events/(self.train_n_events * 0.5))
+            # elif self.signif_type == 'categ':
+            #     signif_val = self.signif_categ(y_t, y_p, self.train_masses,
+            #                                    self.train_peak_mask, data_frac=1-self.validation_fraction)
         else:
             if self.signif_type == 'proba':
                 signif_val = self.signif_proba(y_t, y_p, self.test_masses,
-                                               self.validation_peak_mask, data_frac=self.validation_fraction)
-            elif self.signif_type == 'categ':
-                signif_val = self.signif_categ(y_t, y_p, self.test_masses,
-                                               self.validation_peak_mask, data_frac=self.validation_fraction)
+                                               self.validation_peak_mask,
+                                               sf=self.signal_fraction,
+                                               scale_factor=self.weighted_n_events/(self.valid_n_events * 0.5))
+            # elif self.signif_type == 'categ':
+            #     signif_val = self.signif_categ(y_t, y_p, self.test_masses,
+            #                                    self.validation_peak_mask, data_frac=self.validation_fraction)
         return loss_val, acc_val, signif_val
 
     def train(self, train_ds, test_ds, max_epochs, ot_cutoff=True, ot_cutoff_depth=10):
@@ -417,18 +422,22 @@ class RelegatorClf(ModBinarySoftmaxClf):
         if train:
             if self.signif_type == 'proba':
                 signif = self.signif_proba(y_truth, y_pred, self.train_masses,
-                                           self.train_peak_mask, data_frac=1-self.validation_fraction)
-            elif self.signif_type == 'categ':
-                signif = self.signif_categ(y_truth, y_pred, self.train_masses,
-                                           self.train_peak_mask, data_frac=1-self.validation_fraction)
+                                           self.train_peak_mask,
+                                           sf=self.signal_fraction,
+                                           scale_factor=self.weighted_n_events/(self.train_n_events * 0.5))
+            # elif self.signif_type == 'categ':
+            #     signif = self.signif_categ(y_truth, y_pred, self.train_masses,
+            #                                self.train_peak_mask, data_frac=1-self.validation_fraction)
 
         else:
             if self.signif_type == 'proba':
                 signif = self.signif_proba(y_truth, y_pred, self.test_masses,
-                                           self.validation_peak_mask, data_frac=self.validation_fraction)
-            elif self.signif_type == 'categ':
-                signif = self.signif_categ(y_truth, y_pred, self.test_masses,
-                                           self.validation_peak_mask, data_frac=self.validation_fraction)
+                                           self.validation_peak_mask,
+                                           sf=self.signal_fraction,
+                                           scale_factor=self.weighted_n_events/(self.valid_n_events * 0.5))
+            # elif self.signif_type == 'categ':
+            #     signif = self.signif_categ(y_truth, y_pred, self.test_masses,
+            #                                self.validation_peak_mask, data_frac=self.validation_fraction)
 
         rel_ent = self.relegator_cce(y_truth, y_pred)
 

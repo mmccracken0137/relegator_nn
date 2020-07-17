@@ -80,7 +80,7 @@ for dno in range(n_datasets):
     for j in range(n_fits):
         ## python test_clf.py write_results tag:noise=0.3 tag:angle=1.4 tag:foo=bar noplot
         # run relegator
-        cmd = 'python test_relegator_clf.py write_results noplot tag:noise=' + str(noise)
+        cmd = 'python test_relegator_v2.py write_results noplot tag:noise=' + str(noise)
         cmd += ' tag:angle=' + str(angle)
         cmd += ' tag:nomsigfrac=' + str(sig_frac)
         cmd += ' tag:dataset=' + ds_tag
@@ -88,14 +88,14 @@ for dno in range(n_datasets):
         if run:
             os.system(cmd)
 
-        # run regressor
-        cmd = 'python test_regressor_clf.py write_results noplot tag:noise=' + str(noise)
-        cmd += ' tag:angle=' + str(angle)
-        cmd += ' tag:nomsigfrac=' + str(sig_frac)
-        cmd += ' tag:dataset=' + ds_tag
-        print(cmd)
-        if run:
-            os.system(cmd)
+        # # run regressor
+        # cmd = 'python test_regressor_clf.py write_results noplot tag:noise=' + str(noise)
+        # cmd += ' tag:angle=' + str(angle)
+        # cmd += ' tag:nomsigfrac=' + str(sig_frac)
+        # cmd += ' tag:dataset=' + ds_tag
+        # print(cmd)
+        # if run:
+        #     os.system(cmd)
 
     cmd = 'rm -f ' + train_file_name + '.csv ' + weight_file_name + '.csv'
     print(cmd)

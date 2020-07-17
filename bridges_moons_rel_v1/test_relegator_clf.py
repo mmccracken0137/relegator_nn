@@ -1,4 +1,4 @@
-#!/usr/bon/env python
+#!/usr/bin/env python
 '''
 This code fits and applies the general relegation classifier to toy-model
 moons+mass dataset.  User must supply hyperparameters in this code,
