@@ -1,31 +1,44 @@
 #!/usr/bin/env python
 '''
-runs gen moons data and fits with supplied parameters
+
 '''
 
 import os
-import json
-import numpy as np
 import sys
-import string
-import random
-
-# # ts = ['regress', 'binary_softmax', 'relegator'] # , 'relegator_factor', 'relegator_diff']
-# ts = ['relelgator']
-# #, 'mod_binary']
-# # ts = ['relegator_factor'] #, 'mod_binary']
-# n_sigs = 1 # 8
-# pow_range = (-3,-1)
-# sig_pows = np.linspace(pow_range[0], pow_range[1], n_sigs + 1)
+import itertools
 
 n_fits = 4 # 0
 n_datasets = 4 # 0
 
-n_train_events = 20000
-n_weighted_events = 100000
+angle_vals = [0.0, 0.6, 1.7]
+sig_frac_vals = [0.001, 0.00316, 0.01, 0.0316, 0.1]
+noise_vals = [0.2, 0.3, 0.4]
 
-run = True
+n_datasets = 5
+n_fits = 5
 
+n_train = 20000
+n_weight = 100000
+
+f = open('parallel_comms.txt', 'w')
+
+for i, x in enumerate(itertools.product(angle_vals, sig_frac_vals, noise_vals)):
+    print(i, x)
+    cmd = 'python run_genfit.py'
+    cmd += ' -a' + str(x[0])
+    cmd += ' -s' + str(x[1])
+    cmd += ' -n' + str(x[2])
+    cmd += ' -f' + str(n_fits)
+    cmd += ' -d' + str(n_datasets)
+    cmd += ' -t' + str(n_train)
+    cmd += ' -w' + str(n_weight) + '\n'
+    print(cmd)
+    f.write(cmd)
+
+f.close()
+
+
+'''
 sig_frac, noise, angle = 0, 0, 0
 # parse command line
 for c in sys.argv:
@@ -35,14 +48,6 @@ for c in sys.argv:
         noise = float(c[2:])
     elif '-a' in c:
         angle = float(c[2:])
-    elif '-f' in c:
-        n_fits = int(c[2:])
-    elif '-d' in c:
-        n_datasets = int(c[2:])
-    elif '-t' in c:
-        n_train_events = int(c[2:])
-    elif '-w' in c:
-        n_weighted_events = int(c[2:])
 
 print('generating data with \nnoise = ' + str(noise))
 print('sig_frac = ' + str(sig_frac))
@@ -118,3 +123,4 @@ for dno in range(n_datasets):
     print(cmd)
     if run:
         os.system(cmd)
+'''

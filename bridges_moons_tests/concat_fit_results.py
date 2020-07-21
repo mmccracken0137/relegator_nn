@@ -14,7 +14,7 @@ res_files = sys.argv[1:]
 
 df0, df1 = None, None
 for i, f in enumerate(res_files):
-    print(i, f)
+    print(i, '\t', f)
     if i == 0:
         df0 = pd.read_csv(f)
     else:
