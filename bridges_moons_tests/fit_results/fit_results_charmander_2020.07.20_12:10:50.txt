@@ -1,0 +1,2 @@
+model_type,host,date,dataset,noise,angle,nominal_sig_frac,sig_frac,max_epochs,layers,epochs,train_n_events,valid_n_events,train_time,opt_reg_thresh,eval_acc,train_acc,test_acc,eval_loss,train_loss,test_loss,weighted_n_events,n_raw_bkgd,n_raw_sig,n_pass_bkgd,n_pass_sig,raw_signif,pass_signif,cm_train,cm_valid,cm_weighted
+regressor,charmander,2020.07.20_12:10:50,4xk5p3ze,0.25,1.7,0.01,0.01,2000,40:40:20,402,15000,5000,45.7014,0.8600302982330322,0.7553,0.7552,0.7553,0.3429,0.3679,0.3464,100000,99000,1000,487,419,3.162,13.920,7510:35:4343:3112,2449:6:1491:1054,98513:487:581:419

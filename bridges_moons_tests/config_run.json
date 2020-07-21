@@ -1,0 +1,19 @@
+{ 
+     "data": { 
+     "n_events": 20000, 
+     "noise": 0.25, 
+     "angle": 1.7, 
+     "sig_fraction": 0.005, 
+     "test_fraction": 0.25, 
+     "min_mass": 0.0, 
+     "max_mass": 1.0, 
+     "mean_mass": 0.5, 
+     "width_mass": 0.18, 
+     "n_sigmas": 2.5, 
+     "bkgd_beta": 1.0, 
+     "ttsplit_random_state": 42, 
+     "weighted_n_events": 100000, 
+     "train_data_file": "./datasets/train_ds_8vj7yn7o", 
+     "weighted_data_file": "./datasets/weighted_ds_8vj7yn7o" 
+     } 
+     }

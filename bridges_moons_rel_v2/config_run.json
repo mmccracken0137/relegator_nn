@@ -3,7 +3,7 @@
      "n_events": 20000,
      "noise": 0.25,
      "angle": 1.7,
-     "sig_fraction": 0.05,
+     "sig_fraction": 0.01,
      "test_fraction": 0.25,
      "min_mass": 0.0,
      "max_mass": 1.0,
