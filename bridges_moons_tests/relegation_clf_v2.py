@@ -460,7 +460,7 @@ class RelegatorClf(ModBinarySoftmaxClf):
         signif_term = 0.0
         if self.signif_type != 'none':
             # signif_term = tf.math.divide(1, signif)
-            signif_term = tf.math.divide(self.signif_function(self.signal_fraction * self.weighted_n_events, self.weighted_n_events), signif)
+            signif_term = tf.math.divide(self.signif_function(self.signal_fraction * self.weighted_n_events, self.weighted_n_events), signif) - 1
 
         return rel_ent + signif_term
         # return tf.keras.losses.categorical_crossentropy(y_truth, y_pred)

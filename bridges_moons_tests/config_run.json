@@ -1,8 +1,8 @@
 { 
      "data": { 
      "n_events": 20000, 
-     "noise": 0.3, 
-     "angle": 0.6, 
+     "noise": 0.2, 
+     "angle": 0.0, 
      "sig_fraction": 0.001, 
      "test_fraction": 0.25, 
      "min_mass": 0.0, 
@@ -13,7 +13,7 @@
      "bkgd_beta": 1.0, 
      "ttsplit_random_state": 42, 
      "weighted_n_events": 100000, 
-     "train_data_file": "./datasets/train_ds_7nx2bn9w", 
-     "weighted_data_file": "./datasets/weighted_ds_7nx2bn9w" 
+     "train_data_file": "./datasets/train_ds_uqk6gaxi", 
+     "weighted_data_file": "./datasets/weighted_ds_uqk6gaxi" 
      } 
      }
