@@ -80,7 +80,7 @@ for dno in range(n_datasets):
     config_file = 'config_run_' + ds_tag + '.json'
     with open(config_file, 'w') as f:
         f.write(json_str)
-    cmd = "python make_datasets_2.py config_run.json"
+    cmd = "python make_datasets_2.py " + config_file
     print(sig_frac)
     print(cmd)
 
