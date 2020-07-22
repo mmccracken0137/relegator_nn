@@ -77,10 +77,17 @@ for dno in range(n_datasets):
     \"weighted_data_file\": \"" + weight_file_name + "\" \n \
     } \n \
     }"
-    with open("config_run.json", "w") as f:
+    config_file = 'config_run_' + ds_tag + '.json'
+    with open(config_file, 'w') as f:
         f.write(json_str)
     cmd = "python make_datasets_2.py config_run.json"
     print(sig_frac)
+    print(cmd)
+
+    if run:
+        os.system(cmd)
+
+    cmd = 'rm -f ' + config_file
     print(cmd)
     if run:
         os.system(cmd)

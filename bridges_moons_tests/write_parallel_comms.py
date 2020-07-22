@@ -26,7 +26,7 @@ f = open('parallel_comms.txt', 'w')
 
 for i, x in enumerate(itertools.product(angle_vals, sig_frac_vals, noise_vals)):
     print(i, x)
-    cmd = 'run_genfit.py'
+    cmd = './run_genfit.py'
     cmd += ' -a' + str(x[0])
     cmd += ' -s' + str(x[1])
     cmd += ' -n' + str(x[2])
