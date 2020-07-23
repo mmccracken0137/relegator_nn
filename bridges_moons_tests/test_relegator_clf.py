@@ -492,7 +492,7 @@ if 'write_results' in sys.argv:
     date_stamp = datetime.datetime.now().strftime("%Y.%m.%d_%H:%M:%S")
     hostname = socket.gethostname().replace('.local', '')
     fname = './fit_results/fit_results_' + hostname
-    fname += '_' + date_stamp + '.txt'
+    fname += '_' + date_stamp + '_' + str(results_file_info['dataset']) + '.txt'
     write_header = not os.path.exists(fname)
     print('\nwriting results to file ' + fname)
     f = open(fname, 'a+')
