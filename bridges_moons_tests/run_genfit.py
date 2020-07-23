@@ -10,16 +10,8 @@ import sys
 import string
 import random
 
-# # ts = ['regress', 'binary_softmax', 'relegator'] # , 'relegator_factor', 'relegator_diff']
-# ts = ['relelgator']
-# #, 'mod_binary']
-# # ts = ['relegator_factor'] #, 'mod_binary']
-# n_sigs = 1 # 8
-# pow_range = (-3,-1)
-# sig_pows = np.linspace(pow_range[0], pow_range[1], n_sigs + 1)
-
-n_fits = 4 # 0
-n_datasets = 4 # 0
+n_fits = 4
+n_datasets = 4
 
 n_train_events = 20000
 n_weighted_events = 100000
