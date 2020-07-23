@@ -178,6 +178,7 @@ class ModClf:
         n_B = (1/data_frac) * tf.math.reduce_sum(tf.math.multiply(bkgd_as_sig_probs, peak_mask), axis=0)
 
         signif = self.signif_function(n_S, n_B, tf.constant(self.signal_fraction))
+        print(n_S, n_B, signif)
         return signif
 
     def signif_categ(self, y_truth, y_pred, masses=[], peak_mask=[], data_frac=1.0):

@@ -87,8 +87,8 @@ def plot_xs(xs, labels, ax):
     bkgd_xs = xs[bkgd_idxs]
     ax.plot(bkgd_xs[:,0], bkgd_xs[:,1], '.', markersize=msize, label='background', alpha=0.4)
     ax.plot(sig_xs[:,0], sig_xs[:,1], '.', markersize=msize, label='signal', alpha=0.4)
-    plt.ylabel(r'$x_{1}$')
-    plt.xlabel(r'$x_{0}$')
+    plt.ylabel(r'$x_{1}$', fontsize=18)
+    plt.xlabel(r'$x_{0}$', fontsize=18)
     # ax.legend(loc='upper left')
     return
 

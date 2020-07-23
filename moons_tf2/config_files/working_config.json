@@ -1,7 +1,7 @@
 {
   "data": {
     "n_events": 20000,
-    "noise": 0.2,
+    "noise": 0.25,
     "angle": 1.4,
     "sig_fraction": 0.01,
     "test_fraction": 0.25,

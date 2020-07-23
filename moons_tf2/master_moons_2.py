@@ -293,7 +293,7 @@ plt.tight_layout()
 # plot decision boundaries
 fig = plt.figure(figsize=(9,5.5))
 ax = plt.subplot(1,1,1)
-x1_mesh, x2_mesh, class_mesh = predict_bound_class(model_clf.model, train_df, model_clf.n_outputs) #, opt_thr=opt_thr)
+x1_mesh, x2_mesh, class_mesh = predict_bound_class(model_clf.model, train_df, model_clf.n_outputs, opt_thr=opt_thr)
 # custom colormap for contour
 vmin, vmax = 0, 2
 rel_cmap = relegator_cmap()

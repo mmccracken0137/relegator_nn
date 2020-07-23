@@ -1,0 +1,2 @@
+model_type,	noise,angle,sig_frac,n_epochs,train_time,epochs,eval_acc,train_acc,test_acc,eval_loss,train_loss,test_loss,weighted_n_events,n_raw_bkgd,n_raw_sig,n_pass_bkgd,n_pass_sig,raw_signif,pass_signif
+relegator,	0.2,1.4,0.01,1000,101.0592,550,0.7646,0.7646,0.7646,0.6461,0.8531,0.7220,20000,2649,197,19,124,3.693,10.369

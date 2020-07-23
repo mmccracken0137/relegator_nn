@@ -40,7 +40,7 @@ mean_mass = config_pars['data']['mean_mass'] # 0.5
 width_mass = config_pars['data']['width_mass'] # 0.03
 n_sigmas = config_pars['data']['n_sigmas'] # 2.5
 
-weighted_n_evts = n_sigmas = config_pars['data']['weighted_n_events'] # 50000
+weighted_n_evts = config_pars['data']['weighted_n_events'] # 50000
 
 # # # # # # # # # # # # # # # # # # # #
 # generate train/test datasets...
