@@ -498,7 +498,7 @@ if 'write_results' in sys.argv:
     f = open(fname, 'a+')
     if write_header:
         out_arr = ["model_type", "host", "date", "dataset",
-                   "\tnoise", "angle",
+                   "noise", "angle",
                    "nominal_sig_frac", "sig_frac", "max_epochs",
                    'layers',
                    'epochs',
