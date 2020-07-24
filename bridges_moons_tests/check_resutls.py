@@ -20,10 +20,11 @@ tag = sys.argv[1]
 files = sys.argv[2:]
 
 print(tag)
-print(files)
+# print(files)
 
 t_vals = []
 for f in files:
+    print(f)
     df = pd.read_csv(f)
     ts = df[tag].to_numpy()
     for v in ts:

@@ -7,9 +7,6 @@ import os
 import sys
 import itertools
 
-n_fits = 4 # 0
-n_datasets = 4 # 0
-
 angle_vals = [0.0, 0.6, 1.7]
 sig_frac_vals = [0.001, 0.00316, 0.01, 0.0316, 0.1, 0.316, 0.5]
 # sig_frac_vals = [0.0001, 0.000316, 0.001, 0.00316, 0.01, 0.0316]
